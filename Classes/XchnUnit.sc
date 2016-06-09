@@ -25,37 +25,38 @@ XchnNetwork {
 }
 
 XchnUnit : XchnNetwork {
-    var <>address, <>inputValue, <>controlSpec;
-
+    var <>listenAddress, <>sendAddress, <>controlSpec;
+    var <>inputValue;
     var <>pollTime = 30;
+
     var lfo, lfotype, lfoAddress;
 
-    *new {|address, controlSpec|
-        ^super.new.address_(address.asSymbol).controlSpec_(controlSpec).initXchnUnit;
+    *new {|listenAddress, sendAddress, controlSpec|
+        ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).initXchnUnit;
     }
 
     initXchnUnit {
         // inputValue = Ref(controlSpec.default);
         inputValue = controlSpec.default;
 
-        this.sendToLocal(address, inputValue, true); // prime with default value
+        this.sendToLocal(sendAddress, inputValue, true); // prime with default value
 
-        lfoAddress = (address ++ "_lfo").asSymbol; // "address" is unique
+        lfoAddress = (listenAddress ++ "_lfo").asSymbol; // "address" is unique
         this.createSynthDef(lfoAddress);
 
         this.setupResponders();
     }
 
     setupResponders {
-        OSCdef(address, {|msg|
+        OSCdef(listenAddress, {|msg|
             var val = msg[1];
             inputValue = val;
-            this.sendToLocal(address, controlSpec.map(val));
-        }, address);
+            this.sendToLocal(sendAddress, controlSpec.map(val));
+        }, listenAddress);
 
         OSCdef(lfoAddress, {|msg|
             var val = msg[3];
-            this.sendToLocal(address, controlSpec.map(inputValue + val)); // clamp values in sendToReaper func
+            this.sendToLocal(sendAddress, controlSpec.map(inputValue + val)); // clamp values in sendToReaper func
         }, lfoAddress);
     }
 
@@ -64,10 +65,6 @@ XchnUnit : XchnNetwork {
             var lfo = LFDNoise1.kr(rate).range(minVal, maxVal);
             SendReply.kr(Impulse.kr(pollTime), lfoAddr, lfo);
         }).add;
-    }
-
-    action_ {|func|
-        OSCdef(address, func, address);
     }
 
     lfoType_ {|type|
@@ -90,7 +87,7 @@ XchnUnit : XchnNetwork {
     }
 
     free {
-        OSCdef(address).free;
+        OSCdef(listenAddress).free;
         OSCdef(lfoAddress).free;
     }
 }
