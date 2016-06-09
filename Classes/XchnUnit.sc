@@ -25,15 +25,19 @@ XchnNetwork {
 }
 
 XchnUnit : XchnNetwork {
-    var <>address, <>inputValue;
+    var <>address, <>inputValue, <>controlSpec;
+
     var <>pollTime = 30;
     var lfo, lfotype, lfoAddress;
 
-    *new {|address, defaultValue=0|
-        ^super.new.address_(address.asSymbol).inputValue_(defaultValue).initXchnUnit;
+    *new {|address, controlSpec|
+        ^super.new.address_(address.asSymbol).controlSpec_(controlSpec).initXchnUnit;
     }
 
     initXchnUnit {
+        // inputValue = Ref(controlSpec.default);
+        inputValue = controlSpec.default;
+
         this.sendToLocal(address, inputValue, true); // prime with default value
 
         lfoAddress = (address ++ "_lfo").asSymbol; // "address" is unique
@@ -46,12 +50,12 @@ XchnUnit : XchnNetwork {
         OSCdef(address, {|msg|
             var val = msg[1];
             inputValue = val;
-            this.sendToLocal(address, val);
+            this.sendToLocal(address, controlSpec.map(val));
         }, address);
 
         OSCdef(lfoAddress, {|msg|
             var val = msg[3];
-            this.sendToLocal(address, inputValue + val); // clamp values in sendToReaper func
+            this.sendToLocal(address, controlSpec.map(inputValue + val)); // clamp values in sendToReaper func
         }, lfoAddress);
     }
 

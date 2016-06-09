@@ -18,7 +18,7 @@
     };
 
     q.createAddressSpace = {|self|
-        var default = (minVal: 0, maxVal: 1);
+        var default = (spec: ControlSpec(0, 1, \lin));
         var single, multi;
 
         single = [
@@ -26,7 +26,7 @@
             (address: '/master/eq/lowmid', defaultValue: 0.5),
             (address: '/master/eq/highmid', defaultValue: 0.5),
             (address: '/master/eq/high', defaultValue: 0.5),
-            (address: '/master/volume', defaultValue: 0),
+            (address: '/master/volume', spec: ControlSpec(0, 0.716, \lin, 0, 0)), // TODO: Use a spec instead
         ];
 
         multi = [];
@@ -52,17 +52,20 @@
             var addr = params.address;
             self.all.put(
                 addr,
-                XchnUnit(addr, params.defaultValue)
+                XchnUnit(addr, params.spec)
             );
         };
 
+        /*
         // misc
         self.all.put(
             '/master/eq/reset',
             XchnUnit('/master/eq/reset').action_({|msg|
-                "hello".postln;
+                var low = self.all('/master/eq/low');
+                low.valueAction = 0.5;
             });
         );
+        */
     };
 
     q.start = {|self|
