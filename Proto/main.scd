@@ -13,30 +13,149 @@
     q.init = {|self|
         self.all = ();
         self.setupOSC();
-        self.createAddressSpace();
         self.createResponders();
     };
 
-    q.createAddressSpace = {|self|
-        var default = (spec: ControlSpec(0, 1, \lin));
-        var single, multi;
+    q.createMasterResponders = {|self|
+        var eqDefault = (spec: ControlSpec(0, 1, \lin, 0, 0.5));
+        var eq, volume, label;
 
-        single = [
-            (address: '/master/eq/low', defaultValue: 0.5),
-            (address: '/master/eq/lowmid', defaultValue: 0.5),
-            (address: '/master/eq/highmid', defaultValue: 0.5),
-            (address: '/master/eq/high', defaultValue: 0.5),
-            (address: '/master/volume', spec: ControlSpec(0, 0.716, \lin, 0, 0)), // TODO: Use a spec instead
+        eq = [
+            (listenAddress: '/master/eq/low'),
+            (listenAddress: '/master/eq/lowmid'),
+            (listenAddress: '/master/eq/highmid'),
+            (listenAddress: '/master/eq/high'),
         ];
 
-        multi = [];
+        volume = (
+            listenAddress: '/master/volume',
+            spec: ControlSpec(0, 0.716, \lin, 0, 0)
+        );
 
-        // set defaults
-        single.do(_.parent_(default));
-        multi.do(_.parent_(default));
+        eq.do {|params|
+            var addr = params.listenAddress;
+            params.parent_(eqDefault);
+            self.all.put(addr, XchnUnit(addr, addr, params.spec));
+        };
 
-        self.singleUnits = single;
-        self.multiUnits = multi;
+        self.all.put(
+            volume.listenAddress,
+            XchnUnit(volume.listenAddress, volume.listenAddress, volume.spec)
+        );
+    };
+
+    q.createVolumeResponders = {|self|
+        var default = (spec: ControlSpec(0, 0.716, \lin, 0, 0.716));
+        var relative, absolute, all;
+
+        relative = [
+            (listenAddress: '/relative/1', sendAddress: '/track/2/volume'),
+            (listenAddress: '/relative/2', sendAddress: '/track/5/volume'),
+            (listenAddress: '/relative/3', sendAddress: '/track/8/volume'),
+            (listenAddress: '/relative/4', sendAddress: '/track/11/volume'),
+            (listenAddress: '/relative/5', sendAddress: '/track/14/volume'),
+        ];
+
+        absolute = [
+            (listenAddress: '/abs/main/1', sendAddress: '/track/3/volume'),
+            (listenAddress: '/abs/main/2', sendAddress: '/track/4/volume'),
+            (listenAddress: '/abs/group1/1', sendAddress: '/track/6/volume'),
+            (listenAddress: '/abs/group1/2', sendAddress: '/track/7/volume'),
+            (listenAddress: '/abs/group2/1', sendAddress: '/track/9/volume'),
+            (listenAddress: '/abs/group2/2', sendAddress: '/track/10/volume'),
+            (listenAddress: '/abs/group3/1', sendAddress: '/track/12/volume'),
+            (listenAddress: '/abs/group3/2', sendAddress: '/track/13/volume'),
+            (listenAddress: '/abs/group4/1', sendAddress: '/track/15/volume'),
+            (listenAddress: '/abs/group4/2', sendAddress: '/track/16/volume'),
+        ];
+
+        (relative ++ absolute).do {|params|
+            params.parent_(default);
+            self.all.put(
+                params.listenAddress,
+                XchnUnit(
+                    params.listenAddress,
+                    params.sendAddress,
+                    params.spec
+                )
+            );
+        };
+
+    };
+
+    q.createFxResponders = {|self|
+        var default = (spec: ControlSpec(0, 1, \lin));
+        var fx = [
+            (
+                listenAddr: '/fx/main',
+                sendX: [
+                    '/input/1/L/fx-select/x',
+                    '/input/1/R/fx-select/x'
+                ],
+                sendY: [
+                    '/input/1/L/fx-select/y',
+                    '/input/1/R/fx-select/y'
+                ]
+            ),
+            (
+                listenAddr: '/fx/group1',
+                sendX: [
+                    '/input/2/L/fx-select/x',
+                    '/input/2/R/fx-select/x'
+                ],
+                sendY: [
+                    '/input/2/L/fx-select/y',
+                    '/input/2/R/fx-select/y'
+                ]
+            ),
+            (
+                listenAddr: '/fx/group2',
+                sendX: [
+                    '/input/3/L/fx-select/x',
+                    '/input/3/R/fx-select/x'
+                ],
+                sendY: [
+                    '/input/3/L/fx-select/y',
+                    '/input/3/R/fx-select/y'
+                ]
+            ),
+            (
+                listenAddr: '/fx/group3',
+                sendX: [
+                    '/input/4/L/fx-select/x',
+                    '/input/4/R/fx-select/x'
+                ],
+                sendY: [
+                    '/input/4/L/fx-select/y',
+                    '/input/4/R/fx-select/y'
+                ]
+            ),
+            (
+                listenAddr: '/fx/group4',
+                sendX: [
+                    '/input/5/L/fx-select/x',
+                    '/input/5/R/fx-select/x'
+                ],
+                sendY: [
+                    '/input/5/L/fx-select/y',
+                    '/input/5/R/fx-select/y'
+                ]
+            )
+        ];
+
+        fx.do {|params|
+            var addr = params.listenAddr;
+            params.parent_(default);
+            self.all.put(
+                addr,
+                XchnXYPad(
+                    addr,
+                    params.sendX,
+                    params.sendY,
+                    params.spec
+                );
+            );
+        };
     };
 
     q.setupOSC = {|self|
@@ -48,28 +167,9 @@
     };
 
     q.createResponders = {|self|
-        self.singleUnits.do {|params|
-            var addr = params.address;
-            self.all.put(
-                addr,
-                XchnUnit(addr, params.spec)
-            );
-        };
-
-        /*
-        // misc
-        self.all.put(
-            '/master/eq/reset',
-            XchnUnit('/master/eq/reset').action_({|msg|
-                var low = self.all('/master/eq/low');
-                low.valueAction = 0.5;
-            });
-        );
-        */
-    };
-
-    q.start = {|self|
-
+        self.createMasterResponders();
+        self.createFxResponders();
+        self.createVolumeResponders();
     };
 
     q.cleanup = {|self|
@@ -83,33 +183,9 @@ s.waitForBoot {
 };
 )
 
-q.all
+~reaperPort = NetAddr("127.0.0.1", 8000);
+~reaperPort.sendMsg("/input/2/R/fx-select/y", 0.5);
 
 OSCFunc.trace(true, true);
-Pbind
-
-n = NetAddr("192.168.0.2", 9000);
-n.sendMsg("/master/eq/low", 0.5);
-n.sendMsg("/master/volume", 0);
-n.sendMsg("/master/eq/lowmid", 0.5);
-n.sendMsg("/master/now/playing", "something awesome");
-
-n.sendMsg("/fx/main", 0.5, 0.5);
-n.sendMsg("/fx/group1", 0.5, 0.5);
-n.sendMsg("/1/fx/group3", 0.5, 0.5);
-
-n.sendMsg("/1/multifader4/1", 0);
-
-n.sendMsg("/1/master/eq/low", 0.5);
-n.sendMsg("/1/master/volume", 1);
-
-
-
-x = OSCdef(\test, {|msg| msg.postln });
-
-x.add({})
-x.remove
-x.func
-
-
+OSCFunc.trace(false);
 
