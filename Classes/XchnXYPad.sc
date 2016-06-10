@@ -1,9 +1,9 @@
 XchnXYPad : XchnNetwork {
-    var <>listenAddress, <>sendXAddress, sendYAddress, <>controlSpec;
+    var <>listenAddress, <>sendAddress, <>controlSpec;
     var inputValues;
 
-    *new {|listenAddress, sendXAddress, sendYAddress, controlSpec|
-        ^super.newCopyArgs(listenAddress, sendXAddress, sendYAddress, controlSpec).init;
+    *new {|listenAddress, sendAddress, controlSpec|
+        ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).init;
     }
 
     init {
@@ -32,11 +32,11 @@ XchnXYPad : XchnNetwork {
             var x = obj.x;
             var y = obj.y;
 
-            sendXAddress.do {|addr|
+            sendAddress.x.do {|addr|
                 this.sendToLocal(addr, controlSpec.map(x));
             };
 
-            sendYAddress.do {|addr|
+            sendAddress.y.do {|addr|
                 this.sendToLocal(addr, controlSpec.map(y));
             };
 
@@ -48,11 +48,11 @@ XchnXYPad : XchnNetwork {
             var x = obj.x;
             var y = obj.y;
 
-            sendXAddress.do {|addr|
+            sendAddress.x.do {|addr|
                 this.sendToLocal(addr, controlSpec.map(x));
             };
 
-            sendYAddress.do {|addr|
+            sendAddress.y.do {|addr|
                 this.sendToLocal(addr, controlSpec.map(y));
             };
         });

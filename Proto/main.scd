@@ -11,7 +11,13 @@
     q = q ? ();
 
     q.init = {|self|
+        // storage for responders
         self.all = ();
+        self.all.absolute = ();
+        self.all.relative = ();
+        self.all.master = ();
+        self.all.fx = ();
+
         self.setupOSC();
         self.createResponders();
     };
@@ -35,10 +41,10 @@
         eq.do {|params|
             var addr = params.listenAddress;
             params.parent_(eqDefault);
-            self.all.put(addr, XchnUnit(addr, addr, params.spec));
+            self.all.master.put(addr, XchnUnit(addr, addr, params.spec));
         };
 
-        self.all.put(
+        self.all.master.put(
             volume.listenAddress,
             XchnUnit(volume.listenAddress, volume.listenAddress, volume.spec)
         );
@@ -69,9 +75,9 @@
             (listenAddress: '/abs/group4/2', sendAddress: '/track/16/volume'),
         ];
 
-        (relative ++ absolute).do {|params|
+        absolute.do {|params|
             params.parent_(default);
-            self.all.put(
+            self.all.absolute.put(
                 params.listenAddress,
                 XchnUnit(
                     params.listenAddress,
@@ -81,77 +87,97 @@
             );
         };
 
+        relative.do {|params|
+            params.parent_(default);
+            self.all.relative.put(
+                params.listenAddress,
+                XchnUnit(
+                    params.listenAddress,
+                    params.sendAddress,
+                    params.spec
+                )
+            );
+        };
     };
 
     q.createFxResponders = {|self|
         var default = (spec: ControlSpec(0, 1, \lin));
         var fx = [
             (
-                listenAddr: '/fx/main',
-                sendX: [
-                    '/input/1/L/fx-select/x',
-                    '/input/1/R/fx-select/x'
-                ],
-                sendY: [
-                    '/input/1/L/fx-select/y',
-                    '/input/1/R/fx-select/y'
-                ]
+                listenAddress: '/fx/main',
+                sendAddress: (
+                    x: [
+                        '/input/1/L/fx-select/x',
+                        '/input/1/R/fx-select/x'
+                    ],
+                    y: [
+                        '/input/1/L/fx-select/y',
+                        '/input/1/R/fx-select/y'
+                    ]
+                )
             ),
             (
-                listenAddr: '/fx/group1',
-                sendX: [
-                    '/input/2/L/fx-select/x',
-                    '/input/2/R/fx-select/x'
-                ],
-                sendY: [
-                    '/input/2/L/fx-select/y',
-                    '/input/2/R/fx-select/y'
-                ]
+                listenAddress: '/fx/group1',
+                sendAddress: (
+                    x: [
+                        '/input/2/L/fx-select/x',
+                        '/input/2/R/fx-select/x'
+                    ],
+                    y: [
+                        '/input/2/L/fx-select/y',
+                        '/input/2/R/fx-select/y'
+                    ]
+                )
             ),
             (
-                listenAddr: '/fx/group2',
-                sendX: [
-                    '/input/3/L/fx-select/x',
-                    '/input/3/R/fx-select/x'
-                ],
-                sendY: [
-                    '/input/3/L/fx-select/y',
-                    '/input/3/R/fx-select/y'
-                ]
+                listenAddress: '/fx/group2',
+                sendAddress: (
+                    x: [
+                        '/input/3/L/fx-select/x',
+                        '/input/3/R/fx-select/x'
+                    ],
+                    y: [
+                        '/input/3/L/fx-select/y',
+                        '/input/3/R/fx-select/y'
+                    ]
+                )
             ),
             (
-                listenAddr: '/fx/group3',
-                sendX: [
-                    '/input/4/L/fx-select/x',
-                    '/input/4/R/fx-select/x'
-                ],
-                sendY: [
-                    '/input/4/L/fx-select/y',
-                    '/input/4/R/fx-select/y'
-                ]
+                listenAddress: '/fx/group3',
+                sendAddress: (
+                    x: [
+                        '/input/4/L/fx-select/x',
+                        '/input/4/R/fx-select/x'
+                    ],
+                    y: [
+                        '/input/4/L/fx-select/y',
+                        '/input/4/R/fx-select/y'
+                    ]
+                )
             ),
             (
-                listenAddr: '/fx/group4',
-                sendX: [
-                    '/input/5/L/fx-select/x',
-                    '/input/5/R/fx-select/x'
-                ],
-                sendY: [
-                    '/input/5/L/fx-select/y',
-                    '/input/5/R/fx-select/y'
-                ]
+                listenAddress: '/fx/group4',
+                sendAddress: (
+                    x: [
+                        '/input/5/L/fx-select/x',
+                        '/input/5/R/fx-select/x'
+                    ],
+                    y: [
+                        '/input/5/L/fx-select/y',
+                        '/input/5/R/fx-select/y'
+                    ]
+                )
             )
         ];
 
         fx.do {|params|
-            var addr = params.listenAddr;
+            var addr = params.listenAddress;
             params.parent_(default);
-            self.all.put(
+            self.all.fx.put(
                 addr,
                 XchnXYPad(
                     addr,
-                    params.sendX,
-                    params.sendY,
+                    params.sendAddress,
                     params.spec
                 );
             );
@@ -189,3 +215,41 @@ s.waitForBoot {
 OSCFunc.trace(true, true);
 OSCFunc.trace(false);
 
+
+q.all.relative['/relative/1'].value = 0;
+q.all.relative['/relative/1'].value;
+q.all.relative['/relative/2'].value;
+
+q.all.fx['/fx/main'].value = (x: 0.5, y: 0.5);
+q.all.fx['/fx/main'].value
+
+
+x = Ref()
+x.value = 1
+
+
+    createSynthDef {|lfoAddr, type='random'|
+        SynthDef(lfoAddr, {|rate=1, minVal=0, maxVal=1|
+            var lfo = LFDNoise1.kr(rate).range(minVal, maxVal);
+            SendReply.kr(Impulse.kr(pollTime), lfoAddr, lfo);
+        }).add;
+    }
+
+    lfoType_ {|type|
+        lfotype = type;
+        this.createSynthDef(lfoAddress, type);
+    }
+
+    lfoType {
+        ^lfotype;
+    }
+
+    enableLFO {
+        lfo ?? { lfo = Synth(lfoAddress) };
+        OSCdef(lfoAddress).enable;
+    }
+
+    disableLFO {
+        lfo !? { lfo.release; lfo = nil };
+        OSCdef(lfoAddress).disable;
+    }
