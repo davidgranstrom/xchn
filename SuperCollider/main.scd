@@ -14,6 +14,7 @@
         self.all.absolute = ();
         self.all.relative = ();
         self.all.master = ();
+        self.all.master.eq = ();
         self.all.fx = ();
 
         self.setupOSC();
@@ -39,13 +40,20 @@
         eq.do {|params|
             var addr = params.listenAddress;
             params.parent_(eqDefault);
-            self.all.master.put(addr, XchnUnit(addr, addr, params.spec));
+            self.all.master.eq.put(addr, XchnUnit(addr, addr, params.spec));
         };
 
         self.all.master.put(
             volume.listenAddress,
             XchnUnit(volume.listenAddress, volume.listenAddress, volume.spec)
         );
+
+        // eq reset button
+        OSCdef('/master/eq/reset', {|msg|
+            self.all.master.eq.do {|unit|
+                unit.value = 0.5;
+            }
+        }, '/master/eq/reset')
     };
 
     q.createVolumeResponders = {|self|
