@@ -3,10 +3,10 @@ XchnUnit : XchnNetwork {
     var inputValue, controller;
 
     *new {|listenAddress, sendAddress, controlSpec|
-        ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).initXchnUnit;
+        ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).init;
     }
 
-    initXchnUnit {
+    init {
         inputValue = Ref();
         controller = SimpleController(inputValue);
 
