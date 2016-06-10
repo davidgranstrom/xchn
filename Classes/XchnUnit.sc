@@ -49,35 +49,3 @@ XchnUnit : XchnNetwork {
         OSCdef(listenAddress).free;
     }
 }
-
-XchnXYPad : XchnNetwork {
-    var <>listenAddress, <>sendXAddress, sendYAddress, <>controlSpec;
-
-    *new {|listenAddress, sendXAddress, sendYAddress, controlSpec|
-        ^super.newCopyArgs(listenAddress, sendXAddress, sendYAddress, controlSpec).initXchnMultiUnit;
-    }
-
-    initXchnMultiUnit {
-        this.setupResponders();
-    }
-
-    setupResponders {
-        OSCdef(listenAddress, {|msg|
-            var x = msg[1];
-            var y = msg[2];
-
-            sendXAddress.do {|addr|
-                this.sendToLocal(addr, controlSpec.map(x));
-            };
-
-            sendYAddress.do {|addr|
-                this.sendToLocal(addr, controlSpec.map(y));
-            };
-        }, listenAddress);
-
-        // OSCdef(lfoAddress, {|msg|
-        //     var val = msg[3];
-        //     this.sendToLocal(listenAddress, controlSpec.map(inputValue + val)); // clamp values in sendToReaper func
-        // }, lfoAddress);
-    }
-}
