@@ -67,4 +67,8 @@ XchnXYPad : XchnNetwork {
     value {
         ^inputValues;
     }
+
+    free {
+        OSCdef(listenAddress).free;
+    }
 }
