@@ -21,6 +21,20 @@
         self.createResponders();
     };
 
+    q.setupOSC = {|self|
+        var reaper = NetAddr(localAddress, localPort);
+        var touchOSC = NetAddr(remoteAddress, remotePort);
+
+        XchnNetwork.localAddress = reaper;
+        XchnNetwork.remoteAddress = touchOSC;
+    };
+
+    q.createResponders = {|self|
+        self.createMasterResponders();
+        self.createFxResponders();
+        self.createVolumeResponders();
+    };
+
     q.createMasterResponders = {|self|
         var eqDefault = (spec: ControlSpec(0, 1, \lin, 0, 0.5));
         var eq, volume, label;
@@ -188,20 +202,6 @@
                 );
             );
         };
-    };
-
-    q.setupOSC = {|self|
-        var reaper = NetAddr(localAddress, localPort);
-        var touchOSC = NetAddr(remoteAddress, remotePort);
-
-        XchnNetwork.localAddress = reaper;
-        XchnNetwork.remoteAddress = touchOSC;
-    };
-
-    q.createResponders = {|self|
-        self.createMasterResponders();
-        self.createFxResponders();
-        self.createVolumeResponders();
     };
 
     q.cleanup = {|self|
