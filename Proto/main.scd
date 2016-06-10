@@ -1,12 +1,10 @@
 (
-    var trackNo1 = 3;
-    var maxFaderValue = 0.707;
-    var pollTime = 1/25; // poll interval for server side LFO's
-
     var localAddress = "127.0.0.1"; // address to Reaper
     var localPort = 8000;
     var remoteAddress = "192.168.0.2"; // address to iOS device
     var remotePort = 9000;
+
+    var updateInterval = 1/30; // update interval for server side LFOs
 
     q = q ? ();
 
