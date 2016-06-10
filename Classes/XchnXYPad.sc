@@ -1,6 +1,6 @@
 XchnXYPad : XchnNetwork {
     var <>listenAddress, <>sendXAddress, sendYAddress, <>controlSpec;
-    var inputValues, controller;
+    var inputValues;
 
     *new {|listenAddress, sendXAddress, sendYAddress, controlSpec|
         ^super.newCopyArgs(listenAddress, sendXAddress, sendYAddress, controlSpec).init;
@@ -8,7 +8,24 @@ XchnXYPad : XchnNetwork {
 
     init {
         inputValues = ();
-        controller = SimpleController(inputValues);
+        this.setupController();
+
+        // listen for remote osc
+        OSCdef(listenAddress, {|msg|
+            var x = msg[1];
+            var y = msg[2];
+            this.remoteValue = (x: x, y: y);
+        }, listenAddress);
+
+        // set default value
+        this.value = (
+            x: controlSpec.default,
+            y: controlSpec.default
+        );
+    }
+
+    setupController {
+        var controller = SimpleController(inputValues);
 
         // listen for changes from "outside"
         controller.put(\value, {|obj, what, args|
@@ -39,17 +56,6 @@ XchnXYPad : XchnNetwork {
                 this.sendToLocal(addr, controlSpec.map(y));
             };
         });
-
-        OSCdef(listenAddress, {|msg|
-            var x = msg[1];
-            var y = msg[2];
-            this.remoteValue = (x: x, y: y);
-        }, listenAddress);
-
-        this.value = (
-            x: controlSpec.default,
-            y: controlSpec.default
-        );
     }
 
     value_ {|obj|
