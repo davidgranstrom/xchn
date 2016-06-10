@@ -1,68 +1,52 @@
 XchnUnit : XchnNetwork {
     var <>listenAddress, <>sendAddress, <>controlSpec;
-    var <>inputValue;
-    var <>pollTime = 30;
-
-    var lfo, lfotype, lfoAddress;
+    var inputValue, controller;
 
     *new {|listenAddress, sendAddress, controlSpec|
         ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).initXchnUnit;
     }
 
     initXchnUnit {
-        // inputValue = Ref(controlSpec.default);
-        inputValue = controlSpec.default;
+        inputValue = Ref();
+        controller = SimpleController(inputValue);
 
-        this.sendToLocal(sendAddress, inputValue, true); // prime with default value
+        // listen for changes from "outside"
+        controller.put(\value, {|obj, what, args|
+            var val = obj.value;
+            this.sendToLocal(sendAddress, controlSpec.map(val));
+            this.sendToRemote(listenAddress, val);
+        });
 
-        lfoAddress = (listenAddress ++ "_lfo").asSymbol; // "address" is unique
-        this.createSynthDef(lfoAddress);
+        // listen to changes from remote
+        controller.put(\remoteValue, {|obj, what, args|
+            var val = obj.value;
+            this.sendToLocal(sendAddress, controlSpec.map(val));
+        });
 
-        this.setupResponders();
-    }
-
-    setupResponders {
+        // responder for remote osc
         OSCdef(listenAddress, {|msg|
             var val = msg[1];
-            inputValue = val;
-            this.sendToLocal(sendAddress, controlSpec.map(val));
+            this.remoteValue = val;
         }, listenAddress);
 
-        OSCdef(lfoAddress, {|msg|
-            var val = msg[3];
-            this.sendToLocal(sendAddress, controlSpec.map(inputValue + val)); // clamp values in sendToReaper func
-        }, lfoAddress);
+        // set default
+        inputValue.value = controlSpec.unmap(controlSpec.default);
     }
 
-    createSynthDef {|lfoAddr, type='random'|
-        SynthDef(lfoAddr, {|rate=1, minVal=0, maxVal=1|
-            var lfo = LFDNoise1.kr(rate).range(minVal, maxVal);
-            SendReply.kr(Impulse.kr(pollTime), lfoAddr, lfo);
-        }).add;
+    value_ {|val|
+        inputValue.value_(val).changed(\value);
     }
 
-    lfoType_ {|type|
-        lfotype = type;
-        this.createSynthDef(lfoAddress, type);
+    remoteValue_ {|val|
+        inputValue.value_(val).changed(\remoteValue);
     }
 
-    lfoType {
-        ^lfotype;
-    }
-
-    enableLFO {
-        lfo ?? { lfo = Synth(lfoAddress) };
-        OSCdef(lfoAddress).enable;
-    }
-
-    disableLFO {
-        lfo !? { lfo.release; lfo = nil };
-        OSCdef(lfoAddress).disable;
+    value {
+        ^inputValue.value;
     }
 
     free {
         OSCdef(listenAddress).free;
-        OSCdef(lfoAddress).free;
     }
 }
 
