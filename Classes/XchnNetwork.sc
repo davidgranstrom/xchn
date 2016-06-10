@@ -11,15 +11,13 @@ XchnNetwork {
         remoteAddress !? { remoteAddress.disconnect };
     }
 
-    sendToLocal {|addr, msg, forwardToRemote=false|
-        "network: %: %\n".postf(addr, msg);
-        localAddress.sendMsg(addr, msg);
-        if(forwardToRemote) {
-            this.sendToRemote(addr, msg);
-        }
+    sendToLocal {|... args|
+        "local: %: % %\n".postf(*args);
+        localAddress.sendMsg(*args);
     }
 
-    sendToRemote {|addr, msg|
-        remoteAddress.sendMsg(addr, msg);
+    sendToRemote {|... args|
+        "remote: %: % %\n".postf(*args);
+        remoteAddress.sendMsg(*args);
     }
 }
