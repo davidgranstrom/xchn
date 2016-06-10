@@ -30,7 +30,7 @@ XchnUnit : XchnNetwork {
         }, listenAddress);
 
         // set default
-        inputValue.value = controlSpec.unmap(controlSpec.default);
+        this.value = controlSpec.unmap(controlSpec.default);
     }
 
     value_ {|val|
