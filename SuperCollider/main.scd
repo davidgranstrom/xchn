@@ -4,7 +4,7 @@
     var remoteAddress = "192.168.0.2"; // address to iOS device
     var remotePort = 9000;
 
-    var updateInterval = 1/30; // update interval for server side LFOs
+    var updateInterval = 30; // update interval for server side LFOs
 
     q = q ? ();
 
@@ -33,6 +33,19 @@
         self.createMasterResponders();
         self.createFxResponders();
         self.createVolumeResponders();
+        self.createLFOs();
+    };
+
+    q.createLFOs = {|self|
+        var address = '/abs/main/lfo/toggle';
+        var lfo = XchnLFO.connect([
+            // order matters
+            self.all.absolute['/abs/main/1'],
+            self.all.absolute['/abs/main/2'],
+        ]);
+
+        lfo.type = 'stereo';
+        lfo.listenAddress = address;
     };
 
     q.createMasterResponders = {|self|
