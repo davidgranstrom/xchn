@@ -234,7 +234,6 @@ s.waitForBoot {
 OSCFunc.trace(true, true);
 OSCFunc.trace(false);
 
-
 q.all.relative['/relative/1'].value = 0;
 q.all.relative['/relative/1'].value;
 q.all.relative['/relative/2'].value;
@@ -242,33 +241,3 @@ q.all.relative['/relative/2'].value;
 q.all.fx['/fx/main'].value = (x: 0.5, y: 0.5);
 q.all.fx['/fx/main'].value
 
-
-x = Ref()
-x.value = 1
-
-
-    createSynthDef {|lfoAddr, type='random'|
-        SynthDef(lfoAddr, {|rate=1, minVal=0, maxVal=1|
-            var lfo = LFDNoise1.kr(rate).range(minVal, maxVal);
-            SendReply.kr(Impulse.kr(pollTime), lfoAddr, lfo);
-        }).add;
-    }
-
-    lfoType_ {|type|
-        lfotype = type;
-        this.createSynthDef(lfoAddress, type);
-    }
-
-    lfoType {
-        ^lfotype;
-    }
-
-    enableLFO {
-        lfo ?? { lfo = Synth(lfoAddress) };
-        OSCdef(lfoAddress).enable;
-    }
-
-    disableLFO {
-        lfo !? { lfo.release; lfo = nil };
-        OSCdef(lfoAddress).disable;
-    }
