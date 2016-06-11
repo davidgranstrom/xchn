@@ -3,6 +3,8 @@ XchnLFO {
     var <address, <listenAddress, <type, lfo;
     var <>updateInterval;
 
+    var latch, currentUnitValues;
+
     *new {|units|
         ^super.newCopyArgs(units).init;
     }
@@ -14,13 +16,25 @@ XchnLFO {
     init {
         address = ("/lfo_" ++ Server.default.nextNodeID).asSymbol;
         updateInterval = 30;
+        this.invalidateLatch;
 
         OSCdef(address, {|msg|
             var val = msg[3..];
             val.do {|x, i|
-                units[i].value = x;
+                // skip check ("or:{}") for efficiency if latched value is already reached.
+                if(latch[i] or:{x.equalWithPrecision(currentUnitValues[i], 0.05)}) {
+                    latch[i] = true;
+                };
+
+                if(latch[i]) {
+                    units[i].value = x;
+                };
             };
         }, address);
+    }
+
+    invalidateLatch {
+        latch = Array.fill(units.size, { false });
     }
 
     type_ {|argType|
@@ -38,14 +52,17 @@ XchnLFO {
 
     stop {
         lfo !? { lfo.free; lfo = nil };
+        this.invalidateLatch;
     }
 
     toggle {
         if(lfo.isNil) {
+            currentUnitValues = units.collect(_.value);
             lfo = Synth(address);
         } {
             lfo.free;
             lfo = nil;
+            this.invalidateLatch;
         }
     }
 
