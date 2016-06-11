@@ -1,6 +1,6 @@
 XchnLFO {
     var <units;
-    var address, <type, lfo;
+    var <address, <listenAddress, <type, lfo;
     var <>updateInterval;
 
     *new {|units|
@@ -15,7 +15,7 @@ XchnLFO {
         address = ("/lfo_" ++ Server.default.nextNodeID).asSymbol;
         updateInterval = 30;
 
-        OSCFunc({|msg|
+        OSCdef(address, {|msg|
             var val = msg[3..];
             val.do {|x, i|
                 units[i].value = x;
@@ -50,7 +50,8 @@ XchnLFO {
     }
 
     listenAddress_ {|addr|
-        OSCdef(addr, { this.toggle; address.debug('address'); }, addr);
+        listenAddress = addr;
+        OSCdef(addr, { this.toggle }, addr);
     }
 
     makeStereo {|address|
@@ -78,6 +79,12 @@ XchnLFO {
         { \circle } {
             this.makeCircle(address);
         };
+    }
+
+    free {
+        this.stop;
+        OSCdef(address).free;
+        OSCdef(listenAddress).free;
     }
 }
 
