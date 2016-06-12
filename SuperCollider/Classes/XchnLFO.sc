@@ -68,14 +68,7 @@ XchnLFO {
     }
 
     toggle {
-        if(lfo.isNil) {
-            currentUnitValues = units.collect(_.value);
-            lfo = Synth(address);
-        } {
-            lfo.free;
-            lfo = nil;
-            this.invalidateLatch;
-        }
+        lfo.isNil.if({ this.start }, { this.stop });
     }
 
     listenAddress_ {|addr|
