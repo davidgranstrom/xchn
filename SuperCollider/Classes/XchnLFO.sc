@@ -17,6 +17,9 @@ XchnLFO {
     init {
         address = ("/lfo_" ++ Server.default.nextNodeID).asSymbol;
         updateInterval = 30;
+        minVal = 0;
+        maxVal = 1;
+
         this.invalidateLatch;
 
         OSCdef(address, {|msg|
@@ -58,13 +61,18 @@ XchnLFO {
     }
 
     start {
-        currentUnitValues = units.collect(_.value);
-        lfo ?? { lfo = Synth(address) };
+        lfo ?? {
+            currentUnitValues = units.collect(_.value);
+            lfo = Synth(address, [\minVal, minVal, \maxVal, maxVal]);
+        };
     }
 
     stop {
-        lfo !? { lfo.free; lfo = nil };
-        this.invalidateLatch;
+        lfo !? {
+            this.invalidateLatch;
+            lfo.free;
+            lfo = nil;
+        };
     }
 
     toggle {
@@ -82,14 +90,14 @@ XchnLFO {
             // var right = SinOsc.kr(rate, 0.75pi).range(minVal, maxVal);
             // SendReply.kr(Impulse.kr(updateInterval), address, [ left, right ]);
             var circle = Pan2.kr(DC.kr(1), SinOsc.kr(rate));
-            SendReply.kr(Impulse.kr(updateInterval), address, circle);
+            SendReply.kr(Impulse.kr(updateInterval), address, circle.linlin(0, 1, minVal, maxVal));
         }).add;
     }
 
     makeCircle {|address|
         SynthDef(address, {|rate=0.5, minVal=0, maxVal=1|
             var circle = PanAz.kr(units.size, DC.kr(1), LFSaw.kr(rate), 1, 2, 0);
-            SendReply.kr(Impulse.kr(updateInterval), address, circle);
+            SendReply.kr(Impulse.kr(updateInterval), address, circle.linlin(0, 1, minVal, maxVal));
         }).add;
     }
 
