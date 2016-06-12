@@ -37,15 +37,65 @@
     };
 
     q.createLFOs = {|self|
-        var address = '/abs/main/lfo/toggle';
-        var lfo = XchnLFO.connect([
+        self.createGroupLFO;
+        // self.all.groups.do {|group, i|
+        //     self.createGroupLFOs(group);
+        // };
+    };
+
+    q.createGroupLFO = {|self, group|
+        var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
+        var intSpec = ControlSpec(0, 1, \lin, 0, 0);
+
+        var sineLFO = XchnLFO.connect([
             // order matters
             self.all.absolute['/abs/main/1'],
             self.all.absolute['/abs/main/2'],
         ]);
 
-        lfo.type = 'stereo';
-        lfo.listenAddress = address;
+        var randLFO = XchnLFO.connect([
+            // order matters
+            self.all.absolute['/abs/main/1'],
+            self.all.absolute['/abs/main/2'],
+        ]);
+
+        sineLFO.type = \stereo;
+        sineLFO.rate = rateSpec.default;
+        sineLFO.minVal = intSpec.default;
+
+        randLFO.type = \random;
+        randLFO.rate = rateSpec.default;
+        randLFO.minVal = intSpec.default;
+
+        // send defaults to remote
+        XchnNetwork.remoteAddress.sendMsg('/group1/lfo/rate', rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remoteAddress.sendMsg('/group1/lfo/int', intSpec.unmap(intSpec.default));
+
+        OSCdef('/group1/lfo/rate', {|msg|
+            sineLFO.rate = rateSpec.map(msg[1]);
+            randLFO.rate = rateSpec.map(msg[1]);
+        }, '/group1/lfo/rate');
+
+        OSCdef('/group1/lfo/int', {|msg|
+            sineLFO.minVal = 1 - intSpec.map(msg[1]);
+            randLFO.minVal = 1 - intSpec.map(msg[1]);
+        }, '/group1/lfo/int');
+
+        OSCdef('/group1/lfo/sine/toggle', {|msg|
+            if(randLFO.isRunning) {
+                randLFO.stop;
+                XchnNetwork.remoteAddress.sendMsg('/group1/lfo/random/toggle', 0);
+            };
+            (msg[1].booleanValue).if({ sineLFO.start }, { sineLFO.stop });
+        }, '/group1/lfo/sine/toggle');
+
+        OSCdef('/group1/lfo/random/toggle', {|msg|
+            if(sineLFO.isRunning) {
+                sineLFO.stop;
+                XchnNetwork.remoteAddress.sendMsg('/group1/lfo/sine/toggle', 0);
+            };
+            (msg[1].booleanValue).if({ randLFO.start }, { randLFO.stop });
+        }, '/group1/lfo/random/toggle');
     };
 
     q.createMasterResponders = {|self|
