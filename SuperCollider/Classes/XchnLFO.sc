@@ -86,9 +86,6 @@ XchnLFO {
 
     makeStereo {|address|
         SynthDef(address, {|rate=1, minVal=0, maxVal=1|
-            // var left = SinOsc.kr(rate).range(minVal, maxVal);
-            // var right = SinOsc.kr(rate, 0.75pi).range(minVal, maxVal);
-            // SendReply.kr(Impulse.kr(updateInterval), address, [ left, right ]);
             var circle = Pan2.kr(DC.kr(1), SinOsc.kr(rate));
             SendReply.kr(Impulse.kr(updateInterval), address, circle.linlin(0, 1, minVal, maxVal));
         }).add;
