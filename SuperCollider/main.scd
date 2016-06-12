@@ -11,10 +11,9 @@
     q.init = {|self|
         // storage for responders
         self.all = ();
-        self.all.absolute = ();
-        self.all.relative = ();
         self.all.master = ();
         self.all.master.eq = ();
+        self.all.groups = ();
         self.all.fx = ();
 
         self.setupOSC();
@@ -31,71 +30,8 @@
 
     q.createResponders = {|self|
         self.createMasterResponders();
-        self.createFxResponders();
-        self.createVolumeResponders();
-        self.createLFOs();
-    };
-
-    q.createLFOs = {|self|
-        self.createGroupLFO;
-        // self.all.groups.do {|group, i|
-        //     self.createGroupLFOs(group);
-        // };
-    };
-
-    q.createGroupLFO = {|self, group|
-        var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
-        var intSpec = ControlSpec(0, 1, \lin, 0, 0);
-
-        var sineLFO = XchnLFO.connect([
-            // order matters
-            self.all.absolute['/abs/main/1'],
-            self.all.absolute['/abs/main/2'],
-        ]);
-
-        var randLFO = XchnLFO.connect([
-            // order matters
-            self.all.absolute['/abs/main/1'],
-            self.all.absolute['/abs/main/2'],
-        ]);
-
-        sineLFO.type = \stereo;
-        sineLFO.rate = rateSpec.default;
-        sineLFO.minVal = intSpec.default;
-
-        randLFO.type = \random;
-        randLFO.rate = rateSpec.default;
-        randLFO.minVal = intSpec.default;
-
-        // send defaults to remote
-        XchnNetwork.remoteAddress.sendMsg('/group1/lfo/rate', rateSpec.unmap(rateSpec.default));
-        XchnNetwork.remoteAddress.sendMsg('/group1/lfo/int', intSpec.unmap(intSpec.default));
-
-        OSCdef('/group1/lfo/rate', {|msg|
-            sineLFO.rate = rateSpec.map(msg[1]);
-            randLFO.rate = rateSpec.map(msg[1]);
-        }, '/group1/lfo/rate');
-
-        OSCdef('/group1/lfo/int', {|msg|
-            sineLFO.minVal = 1 - intSpec.map(msg[1]);
-            randLFO.minVal = 1 - intSpec.map(msg[1]);
-        }, '/group1/lfo/int');
-
-        OSCdef('/group1/lfo/sine/toggle', {|msg|
-            if(randLFO.isRunning) {
-                randLFO.stop;
-                XchnNetwork.remoteAddress.sendMsg('/group1/lfo/random/toggle', 0);
-            };
-            (msg[1].booleanValue).if({ sineLFO.start }, { sineLFO.stop });
-        }, '/group1/lfo/sine/toggle');
-
-        OSCdef('/group1/lfo/random/toggle', {|msg|
-            if(sineLFO.isRunning) {
-                sineLFO.stop;
-                XchnNetwork.remoteAddress.sendMsg('/group1/lfo/sine/toggle', 0);
-            };
-            (msg[1].booleanValue).if({ randLFO.start }, { randLFO.stop });
-        }, '/group1/lfo/random/toggle');
+        self.createGroupResponders();
+        // self.createFxResponders();
     };
 
     q.createMasterResponders = {|self|
@@ -103,81 +39,83 @@
         var eq, volume, label;
 
         eq = [
-            (listenAddress: '/master/eq/low'),
-            (listenAddress: '/master/eq/lowmid'),
-            (listenAddress: '/master/eq/highmid'),
-            (listenAddress: '/master/eq/high'),
+            (address: '/master/eq/low'),
+            (address: '/master/eq/lowmid'),
+            (address: '/master/eq/highmid'),
+            (address: '/master/eq/high'),
         ];
 
         volume = (
-            listenAddress: '/master/volume',
+            address: '/master/volume',
             spec: ControlSpec(0, 0.716, \lin, 0, 0)
         );
 
         eq.do {|params|
-            var addr = params.listenAddress;
+            var addr = params.address;
             params.parent_(eqDefault);
-            self.all.master.eq.put(addr, XchnUnit(addr, addr, params.spec));
+            self.all.master.eq.put(addr, XchnUnitState(addr, addr, params.spec));
         };
 
         self.all.master.put(
-            volume.listenAddress,
-            XchnUnit(volume.listenAddress, volume.listenAddress, volume.spec)
+            volume.address,
+            XchnUnitState(volume.address, volume.address, volume.spec)
         );
 
         // eq reset button
         OSCdef('/master/eq/reset', {|msg|
             self.all.master.eq.do {|unit|
-                unit.value = 0.5;
+                unit.value = eqDefault.default;
             }
         }, '/master/eq/reset')
     };
 
-    q.createVolumeResponders = {|self|
-        var default = (spec: ControlSpec(0, 0.716, \lin, 0, 0.716)); // 0.716 is 0dB in Reaper
-        var relative, absolute, all;
-
-        relative = [
-            (listenAddress: '/relative/1', sendAddress: '/track/2/volume'),
-            (listenAddress: '/relative/2', sendAddress: '/track/5/volume'),
-            (listenAddress: '/relative/3', sendAddress: '/track/8/volume'),
-            (listenAddress: '/relative/4', sendAddress: '/track/11/volume'),
-            (listenAddress: '/relative/5', sendAddress: '/track/14/volume'),
+    q.createGroupResponders = {|self|
+        var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
+        var groups = [
+            (
+                listen: '/group1',
+                send: (
+                    left: '/track/3/volume',
+                    right: '/track/4/volume'
+                ),
+            ),
+            (
+                listen: '/group2',
+                send: (
+                    left: '/track/6/volume',
+                    right: '/track/7/volume'
+                ),
+            ),
+            (
+                listen: '/group3',
+                send: (
+                    left: '/track/9/volume',
+                    right: '/track/10/volume'
+                ),
+            ),
+            (
+                listen: '/group4',
+                send: (
+                    left: '/track/12/volume',
+                    right: '/track/13/volume'
+                ),
+            ),
+            (
+                listen: '/group5',
+                send: (
+                    left: '/track/15/volume',
+                    right: '/track/16/volume'
+                ),
+            )
         ];
 
-        absolute = [
-            (listenAddress: '/abs/main/1', sendAddress: '/track/3/volume'),
-            (listenAddress: '/abs/main/2', sendAddress: '/track/4/volume'),
-            (listenAddress: '/abs/group1/1', sendAddress: '/track/6/volume'),
-            (listenAddress: '/abs/group1/2', sendAddress: '/track/7/volume'),
-            (listenAddress: '/abs/group2/1', sendAddress: '/track/9/volume'),
-            (listenAddress: '/abs/group2/2', sendAddress: '/track/10/volume'),
-            (listenAddress: '/abs/group3/1', sendAddress: '/track/12/volume'),
-            (listenAddress: '/abs/group3/2', sendAddress: '/track/13/volume'),
-            (listenAddress: '/abs/group4/1', sendAddress: '/track/15/volume'),
-            (listenAddress: '/abs/group4/2', sendAddress: '/track/16/volume'),
-        ];
-
-        absolute.do {|params|
-            params.parent_(default);
-            self.all.absolute.put(
-                params.listenAddress,
-                XchnUnit(
-                    params.listenAddress,
-                    params.sendAddress,
-                    params.spec
-                )
-            );
-        };
-
-        relative.do {|params|
-            params.parent_(default);
-            self.all.relative.put(
-                params.listenAddress,
-                XchnUnit(
-                    params.listenAddress,
-                    params.sendAddress,
-                    params.spec
+        groups.do {|params|
+            self.all.groups.put(
+                params.listen,
+                XchnGroup(
+                    params.listen,
+                    params.send,
+                    spec
                 )
             );
         };
