@@ -1,4 +1,10 @@
-XchnUnit : XchnNetwork {
+// ===========================================================================
+// Title         : XchnUnitState
+// Description   : Tracks state between remote and local applications
+// Copyright (c) : David Granström 2016
+// ===========================================================================
+
+XchnUnitState : XchnNetwork {
     var <>listenAddress, <>sendAddress, <>controlSpec;
     var inputValue;
 
@@ -8,28 +14,19 @@ XchnUnit : XchnNetwork {
 
     init {
         inputValue = Ref();
-        this.setupController();
-
-        // responder for remote osc
-        OSCdef(listenAddress, {|msg|
-            var val = msg[1];
-            this.remoteValue = val;
-        }, listenAddress);
-
+        this.setupController(inputValue);
         // set default
         this.value = controlSpec.unmap(controlSpec.default);
     }
 
-    setupController {
-        var controller = SimpleController(inputValue);
-
+    setupController {|model|
+        var controller = SimpleController(model);
         // listen for changes from "outside"
         controller.put(\value, {|obj, what, args|
             var val = obj.value;
             this.sendToLocal(sendAddress, controlSpec.map(val));
             this.sendToRemote(listenAddress, val);
         });
-
         // listen to changes from remote
         controller.put(\remoteValue, {|obj, what, args|
             var val = obj.value;
@@ -47,9 +44,5 @@ XchnUnit : XchnNetwork {
 
     value {
         ^inputValue.value;
-    }
-
-    free {
-        OSCdef(listenAddress).free;
     }
 }
