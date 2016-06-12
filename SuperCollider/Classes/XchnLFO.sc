@@ -1,8 +1,9 @@
 XchnLFO {
     var <units;
-    var <address, <listenAddress, <type, lfo;
+    var <address, <listenAddress;
     var <>updateInterval;
 
+    var lfo, <type, <minVal, <maxVal;
     var latch, currentUnitValues;
 
     *new {|units|
@@ -44,6 +45,16 @@ XchnLFO {
 
     rate_ {|rate=1|
         lfo.set(\rate, rate);
+    }
+
+    minVal_ {|val|
+        minVal = val;
+        lfo.set(\minVal, val);
+    }
+
+    maxVal_ {|val|
+        maxVal = val;
+        lfo.set(\maxVal, val);
     }
 
     start {
