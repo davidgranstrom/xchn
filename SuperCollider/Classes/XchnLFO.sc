@@ -1,9 +1,9 @@
 XchnLFO {
     var <units;
-    var <address, <listenAddress;
-    var <>updateInterval;
+    var <address;
+    var <>updateInterval, <isRunning;
 
-    var lfo, <type, <minVal, <maxVal;
+    var lfo, <>type, <minVal, <maxVal, <rate;
     var latch, currentUnitValues;
 
     *new {|units|
@@ -19,7 +19,10 @@ XchnLFO {
         updateInterval = 30;
         minVal = 0;
         maxVal = 1;
+        type = \stereo;
+        isRunning = false;
 
+        this.makeSynthDefs;
         this.invalidateLatch;
 
         OSCdef(address, {|msg|
@@ -41,29 +44,31 @@ XchnLFO {
         latch = Array.fill(units.size, { false });
     }
 
-    type_ {|argType|
-        type = argType;
-        this.createLFO(address, type);
-    }
-
-    rate_ {|rate=1|
-        lfo.set(\rate, rate);
+    rate_ {|val=1|
+        rate = val;
+        lfo !? { lfo.set(\rate, val) };
     }
 
     minVal_ {|val|
         minVal = val;
-        lfo.set(\minVal, val);
+        lfo !? { lfo.set(\minVal, val) };
     }
 
     maxVal_ {|val|
         maxVal = val;
-        lfo.set(\maxVal, val);
+        lfo !? { lfo.set(\maxVal, val) };
     }
 
     start {
         lfo ?? {
             currentUnitValues = units.collect(_.value);
-            lfo = Synth(address, [\minVal, minVal, \maxVal, maxVal]);
+            lfo = Synth(
+                (address ++ "_" ++ type).asSymbol, [
+                \minVal, minVal,
+                \maxVal, maxVal,
+                \rate, rate
+            ]);
+            isRunning = true;
         };
     }
 
@@ -72,6 +77,7 @@ XchnLFO {
             this.invalidateLatch;
             lfo.free;
             lfo = nil;
+            isRunning = false;
         };
     }
 
@@ -79,39 +85,26 @@ XchnLFO {
         lfo.isNil.if({ this.start }, { this.stop });
     }
 
-    listenAddress_ {|addr|
-        listenAddress = addr;
-        OSCdef(addr, { this.toggle }, addr);
-    }
-
-    makeStereo {|address|
-        SynthDef(address, {|rate=1, minVal=0, maxVal=1|
+    makeSynthDefs {
+        SynthDef((address ++ "_stereo").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
             var circle = Pan2.kr(DC.kr(1), SinOsc.kr(rate));
             SendReply.kr(Impulse.kr(updateInterval), address, circle.linlin(0, 1, minVal, maxVal));
         }).add;
-    }
 
-    makeCircle {|address|
-        SynthDef(address, {|rate=0.5, minVal=0, maxVal=1|
+        SynthDef((address ++ "_circle").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
             var circle = PanAz.kr(units.size, DC.kr(1), LFSaw.kr(rate), 1, 2, 0);
             SendReply.kr(Impulse.kr(updateInterval), address, circle.linlin(0, 1, minVal, maxVal));
         }).add;
-    }
 
-    createLFO {|address, type=\leftRight|
-        switch (type)
-        { \stereo } {
-            this.makeStereo(address);
-        }
-        { \circle } {
-            this.makeCircle(address);
-        };
+        SynthDef((address ++ "_random").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
+            var rand = LFDNoise1.kr(rate ! units.size);
+            SendReply.kr(Impulse.kr(updateInterval), address, rand.range(minVal, maxVal));
+        }).add;
     }
 
     free {
         this.stop;
         OSCdef(address).free;
-        OSCdef(listenAddress).free;
     }
 }
 
