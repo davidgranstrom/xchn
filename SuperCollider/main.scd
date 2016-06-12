@@ -134,7 +134,7 @@
     };
 
     q.createVolumeResponders = {|self|
-        var default = (spec: ControlSpec(0, 0.716, \lin, 0, 0.716));
+        var default = (spec: ControlSpec(0, 0.716, \lin, 0, 0.716)); // 0.716 is 0dB in Reaper
         var relative, absolute, all;
 
         relative = [
@@ -269,13 +269,14 @@
 
     q.cleanup = {|self|
         XchnNetwork.disconnect;
+        self.all.do {|dict| dict.do(_.free) };
     };
 
-s.waitForBoot {
-    q.init;
-    s.sync;
-    CmdPeriod.doOnce { q.cleanup; };
-};
+    s.waitForBoot {
+        q.init;
+        s.sync;
+        CmdPeriod.doOnce { q.cleanup; };
+    };
 )
 
 ~reaperPort = NetAddr("127.0.0.1", 8000);
