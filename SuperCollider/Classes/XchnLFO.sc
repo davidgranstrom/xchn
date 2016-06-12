@@ -47,6 +47,7 @@ XchnLFO {
     }
 
     start {
+        currentUnitValues = units.collect(_.value);
         lfo ?? { lfo = Synth(address) };
     }
 
