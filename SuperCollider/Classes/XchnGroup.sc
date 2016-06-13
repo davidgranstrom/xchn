@@ -36,7 +36,7 @@ XchnGroup {
 
     attachLFO {
         var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
-        var intSpec = ControlSpec(0, 1, \lin, 0, 0);
+        var intSpec = ControlSpec(1, 0, \lin, 0, 1);
         var addr, lfos = ();
 
         // connect parameters
@@ -67,7 +67,7 @@ XchnGroup {
 
         addr = (listenPrefix ++ "/lfo/int").asSymbol;
         OSCdef(addr, {|msg|
-            lfos.do {|lfo| lfo.minVal = 1 - intSpec.map(msg[1]) };
+            lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
         }, addr);
 
         this.addToCleanup(OSCdef(addr));

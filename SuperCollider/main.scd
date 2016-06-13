@@ -126,7 +126,7 @@
     q.createMainResponders = {|self|
         var units = List[];
         var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
-        var intSpec = ControlSpec(0, 1, \lin, 0, 0);
+        var intSpec = ControlSpec(1, 0, \lin, 0, 1);
         var lfos = ();
 
         var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
@@ -193,7 +193,7 @@
         }, '/main/lfo/rate');
 
         OSCdef('/main/lfo/int', {|msg|
-            lfos.do {|lfo| lfo.minVal = 1 - intSpec.map(msg[1]) };
+            lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
         }, '/main/lfo/int');
 
         OSCdef('/main/lfo/up/toggle', {|msg|
