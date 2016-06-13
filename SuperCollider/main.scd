@@ -14,6 +14,7 @@
         self.all.master = ();
         self.all.master.eq = ();
         self.all.groups = ();
+        self.all.absolute = ();
         self.all.fx = ();
 
         self.setupOSC();
@@ -31,6 +32,7 @@
     q.createResponders = {|self|
         self.createMasterResponders();
         self.createGroupResponders();
+        self.createMainResponders();
         // self.createFxResponders();
     };
 
@@ -119,6 +121,113 @@
                 )
             );
         };
+    };
+
+    q.createMainResponders = {|self|
+        var units = List[];
+        var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
+        var intSpec = ControlSpec(0, 1, \lin, 0, 0);
+        var lfos = ();
+
+        var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
+        var absolute = [
+            (
+                listen: '/group1/abs/volume',
+                send: '/track/2/volume'
+            ),
+            (
+                listen: '/group2/abs/volume',
+                send: '/track/5/volume'
+            ),
+            (
+                listen: '/group3/abs/volume',
+                send: '/track/8/volume'
+            ),
+            (
+                listen: '/group4/abs/volume',
+                send: '/track/11/volume'
+            ),
+            (
+                listen: '/group5/abs/volume',
+                send: '/track/14/volume'
+            )
+        ];
+
+        absolute.do {|params|
+            var unit;
+            self.all.absolute.put(
+                params.listen,
+                unit = XchnUnitState(
+                    params.listen,
+                    params.send,
+                    spec
+                )
+            );
+
+            units.add(unit);
+        };
+
+        // setup LFOs
+        lfos.up = XchnLFO.connect(units);
+        lfos.down = XchnLFO.connect(units.reverse);
+        lfos.random = XchnLFO.connect(units);
+
+        lfos.up.type = \circle;
+        lfos.down.type = \circle;
+        lfos.random.type = \random;
+
+        lfos.do {|lfo|
+            lfo.rate = rateSpec.default;
+            lfo.minVal = intSpec.default;
+        };
+
+        // send defaults to remote
+        XchnNetwork.remoteAddress.sendMsg("/main/lfo/rate", rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remoteAddress.sendMsg("/main/lfo/int", intSpec.unmap(intSpec.default));
+
+        OSCdef('/main/lfo/rate', {|msg|
+            lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
+        }, '/main/lfo/rate');
+
+        OSCdef('/main/lfo/int', {|msg|
+            lfos.do {|lfo| lfo.minVal = 1 - intSpec.map(msg[1]) };
+        }, '/main/lfo/int');
+
+        OSCdef('/main/lfo/up/toggle', {|msg|
+            if(lfos.down.isRunning) {
+                lfos.down.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
+            };
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
+        }, '/main/lfo/up/toggle');
+
+        OSCdef('/main/lfo/down/toggle', {|msg|
+            if(lfos.up.isRunning) {
+                lfos.up.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
+            };
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
+        }, '/main/lfo/down/toggle');
+
+        OSCdef('/main/lfo/random/toggle', {|msg|
+            if(lfos.up.isRunning) {
+                lfos.up.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
+            };
+            if(lfos.down.isRunning) {
+                lfos.down.stop;
+                XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+        }, '/main/lfo/random/toggle');
     };
 
     q.createFxResponders = {|self|
