@@ -184,6 +184,9 @@
         // send defaults to remote
         XchnNetwork.remoteAddress.sendMsg("/main/lfo/rate", rateSpec.unmap(rateSpec.default));
         XchnNetwork.remoteAddress.sendMsg("/main/lfo/int", intSpec.unmap(intSpec.default));
+        XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
+        XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
+        XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
 
         OSCdef('/main/lfo/rate', {|msg|
             lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
