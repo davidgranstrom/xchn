@@ -1,7 +1,7 @@
 XchnLFO {
     var <units;
     var <address;
-    var <>updateInterval, <isRunning;
+    var <>updateInterval;
 
     var lfo, <>type, <minVal, <maxVal, <rate;
     var latch, currentUnitValues;
@@ -20,7 +20,6 @@ XchnLFO {
         minVal = 0;
         maxVal = 1;
         type = \stereo;
-        isRunning = false;
 
         this.makeSynthDefs;
         this.invalidateLatch;
@@ -68,7 +67,6 @@ XchnLFO {
                 \maxVal, maxVal,
                 \rate, rate
             ]);
-            isRunning = true;
         };
     }
 
@@ -77,12 +75,15 @@ XchnLFO {
             this.invalidateLatch;
             lfo.free;
             lfo = nil;
-            isRunning = false;
         };
     }
 
     toggle {
         lfo.isNil.if({ this.start }, { this.stop });
+    }
+
+    isRunning {
+        ^lfo.notNil;
     }
 
     makeSynthDefs {
