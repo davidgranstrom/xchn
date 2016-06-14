@@ -319,6 +319,119 @@
                 );
             );
         };
+
+        self.createGlobalFxParameters();
+    };
+
+    q.createGlobalLFO = {|self, name, params|
+        var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
+        var intSpec = ControlSpec(1, 0, \lin, 0, 1);
+        var addr, lfos = ();
+
+        lfos.sine = XchnLFO.connect(params);
+        lfos.random  = XchnLFO.connect(params);
+
+        lfos.sine.type = \mono_sine;
+        lfos.random.type = \mono_random;
+
+        lfos.do {|lfo|
+            lfo.rate = rateSpec.default;
+            lfo.minVal = intSpec.default;
+        };
+
+        // send defaults to remote
+        XchnNetwork.remote.sendMsg("/fx/global/%/rate".format(name), rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remote.sendMsg("/fx/global/%/int".format(name), intSpec.unmap(intSpec.default));
+        XchnNetwork.remote.sendMsg("/fx/global/%/sine/toggle".format(name), 0);
+        XchnNetwork.remote.sendMsg("/fx/global/%/random/toggle".format(name), 0);
+
+        // setup responders
+        addr = ("/fx/global/%/lfo/rate".format(name)).asSymbol;
+        OSCdef(addr, {|msg|
+            lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
+        }, addr);
+
+        addr = ("/fx/global/%/lfo/int".format(name)).asSymbol;
+        OSCdef(addr, {|msg|
+            lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
+        }, addr);
+
+        addr = ("/fx/global/%/lfo/sine/toggle".format(name)).asSymbol;
+        OSCdef(addr, {|msg|
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remote.sendMsg("/fx/global/%/lfo/random/toggle".format(name), 0);
+            };
+            (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
+        }, addr);
+
+        addr = ("/fx/global/%/lfo/random/toggle".format(name)).asSymbol;
+        OSCdef(addr, {|msg|
+            if(lfos.sine.isRunning) {
+                lfos.sine.stop;
+                XchnNetwork.remote.sendMsg("/fx/global/%/lfo/sine/toggle".format(name), 0);
+            };
+            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+        }, addr);
+
+        lfos;
+    };
+
+    q.createGlobalFxParameters = {|self|
+        var params = (reverb: (), distortion: (), grain: ());
+        var lfos = ();
+        var specs = ();
+
+        specs.reverb = (
+            cfreq: ControlSpec(0, 1, \lin, 0, 0.5),
+            roomSize: ControlSpec(0, 1, \lin, 0, 0.5),
+        );
+
+        specs.distortion = (
+            gain: ControlSpec(0, 1, \lin, 0, 0),
+        );
+
+        specs.grain = (
+            density: ControlSpec(0, 1, \lin, 0, 0.1),
+        );
+
+        params.reverb.cfreq = XchnUnitState(
+            '/fx/global/reverb/value',
+            '/reverb/bpf/cfreq',
+            specs.reverb.cfreq
+        );
+
+        params.reverb.roomSize = XchnUnitState(
+            '/fx/global/reverb/value',
+            '/reverb/roomSize',
+            specs.reverb.roomSize
+        );
+
+        params.distortion.gain = XchnUnitState(
+            '/fx/global/distortion/value',
+            '/distortion/gain',
+            specs.distortion.gain
+        );
+
+        params.grain.density = XchnUnitState(
+            '/fx/global/grain/value',
+            '/grain/density',
+            specs.grain.density
+        );
+
+        lfos.reverb = self.createGlobalLFO('reverb', params.reverb.values);
+        lfos.distortion = self.createGlobalLFO('distortion', params.distortion.values);
+        lfos.grain = self.createGlobalLFO('grain', params.grain.values);
+
+        params.keys.do {|name|
+            var addr = "/fx/global/%/value".format(name);
+
+            OSCdef(addr, {|msg|
+                params[name].values.do {|unit|
+                    unit.remoteValue = msg[1];
+                };
+            }, addr);
+        };
     };
 
     q.cleanup = {|self|
