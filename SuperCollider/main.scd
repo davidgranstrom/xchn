@@ -76,60 +76,62 @@
         // eq reset button
         OSCdef('/master/eq/reset', {|msg|
             self.all.master.eq.do {|unit|
-                unit.value = eqDefault.default;
+                unit.value = eqDefault.spec.default;
             }
         }, '/master/eq/reset')
     };
 
     q.createGroupResponders = {|self|
         var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
-        var groups = [
-            (
-                listen: '/group1',
-                send: (
-                    left: '/track/3/volume',
-                    right: '/track/4/volume'
-                ),
-            ),
-            (
-                listen: '/group2',
-                send: (
-                    left: '/track/6/volume',
-                    right: '/track/7/volume'
-                ),
-            ),
-            (
-                listen: '/group3',
-                send: (
-                    left: '/track/9/volume',
-                    right: '/track/10/volume'
-                ),
-            ),
-            (
-                listen: '/group4',
-                send: (
-                    left: '/track/12/volume',
-                    right: '/track/13/volume'
-                ),
-            ),
-            (
-                listen: '/group5',
-                send: (
-                    left: '/track/15/volume',
-                    right: '/track/16/volume'
-                ),
-            )
+        var units, groups = [
+            (listen: '/group1/volume/L', send: '/track/3/volume'),
+            (listen: '/group1/volume/R', send: '/track/4/volume'),
+
+            (listen: '/group2/volume/L', send: '/track/6/volume'),
+            (listen: '/group2/volume/R', send: '/track/7/volume'),
+
+            (listen: '/group3/volume/L', send: '/track/9/volume'),
+            (listen: '/group3/volume/R', send: '/track/10/volume'),
+
+            (listen: '/group4/volume/L', send: '/track/12/volume'),
+            (listen: '/group4/volume/R', send: '/track/13/volume'),
+
+            (listen: '/group5/volume/L', send: '/track/15/volume'),
+            (listen: '/group5/volume/R', send: '/track/16/volume')
         ];
 
-        groups.do {|params|
+        units = groups.collect {|params|
+            var unit, resp;
+
             self.all.groups.put(
                 params.listen,
-                XchnGroup(
+                unit = XchnUnitState(
                     params.listen,
                     params.send,
                     spec
                 )
             );
+
+            resp = OSCFunc({|msg|
+                var val = msg[1];
+                unit.remoteValue = val;
+            }, params.listen);
+
+            self.addToCleanup(resp);
+
+            unit;
+        };
+
+        // stereo pairs
+        units.clump(2).do {|channels, i|
+            var lfos = ();
+
+            lfos.sine = XchnLFO.connect(channels);
+            lfos.random = XchnLFO.connect(channels);
+            lfos.sine.type = \stereo;
+            lfos.random.type = \random;
+
+            self.setupLFOUnit("group" ++ (i + 1), lfos);
         };
     };
 
@@ -190,61 +192,7 @@
         lfos.down.type = \circle;
         lfos.random.type = \random;
 
-        lfos.do {|lfo|
-            lfo.rate = rateSpec.default;
-            lfo.minVal = intSpec.default;
-        };
-
-        // send defaults to remote
-        XchnNetwork.remote.sendMsg("/main/lfo/rate", rateSpec.unmap(rateSpec.default));
-        XchnNetwork.remote.sendMsg("/main/lfo/int", intSpec.unmap(intSpec.default));
-        XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
-        XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
-        XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
-
-        OSCdef('/main/lfo/rate', {|msg|
-            lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
-        }, '/main/lfo/rate');
-
-        OSCdef('/main/lfo/int', {|msg|
-            lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
-        }, '/main/lfo/int');
-
-        OSCdef('/main/lfo/up/toggle', {|msg|
-            if(lfos.down.isRunning) {
-                lfos.down.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
-            };
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
-        }, '/main/lfo/up/toggle');
-
-        OSCdef('/main/lfo/down/toggle', {|msg|
-            if(lfos.up.isRunning) {
-                lfos.up.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
-            };
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
-        }, '/main/lfo/down/toggle');
-
-        OSCdef('/main/lfo/random/toggle', {|msg|
-            if(lfos.up.isRunning) {
-                lfos.up.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
-            };
-            if(lfos.down.isRunning) {
-                lfos.down.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
-        }, '/main/lfo/random/toggle');
+        self.setupMainLFOs("main", lfos);
     };
 
     q.createFxResponders = {|self|
@@ -291,16 +239,84 @@
         self.createGlobalFxParameters();
     };
 
-    q.createGlobalLFO = {|self, name, params|
+    q.setupLFOUnit = {|self, prefix, lfos|
+        var resp;
+
+        self.setupLFOs(prefix, lfos);
+
+        resp = OSCFunc({|msg|
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remote.sendMsg("/%/lfo/random/toggle".format(prefix), 0);
+            };
+            (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
+        }, "/%/lfo/sine/toggle".format(prefix));
+
+        self.addToCleanup(resp);
+
+        resp = OSCFunc({|msg|
+            if(lfos.sine.isRunning) {
+                lfos.sine.stop;
+                XchnNetwork.remote.sendMsg("/%/lfo/sine/toggle".format(prefix), 0);
+            };
+            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+        }, "/%/lfo/random/toggle".format(prefix));
+
+        self.addToCleanup(resp);
+    };
+
+    q.setupMainLFOs = {|self, prefix, lfos|
+        var resp;
+
+        self.setupLFOs(prefix, lfos);
+
+        resp = OSCFunc({|msg|
+            if(lfos.down.isRunning) {
+                lfos.down.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
+            };
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
+        }, "/main/lfo/up/toggle");
+
+        self.addToCleanup(resp);
+
+        resp = OSCFunc({|msg|
+            if(lfos.up.isRunning) {
+                lfos.up.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
+            };
+            if(lfos.random.isRunning) {
+                lfos.random.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
+        }, "/main/lfo/down/toggle");
+
+        self.addToCleanup(resp);
+
+        resp = OSCFunc({|msg|
+            if(lfos.up.isRunning) {
+                lfos.up.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
+            };
+            if(lfos.down.isRunning) {
+                lfos.down.stop;
+                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
+            };
+            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+        }, "/main/lfo/random/toggle");
+
+        self.addToCleanup(resp);
+    };
+
+    q.setupLFOs = {|self, prefix, lfos|
         var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
         var intSpec = ControlSpec(1, 0, \lin, 0, 1);
-        var addr, lfos = ();
-
-        lfos.sine = XchnLFO.connect(params);
-        lfos.random  = XchnLFO.connect(params);
-
-        lfos.sine.type = \mono_sine;
-        lfos.random.type = \mono_random;
+        var resp;
 
         lfos.do {|lfo|
             lfo.rate = rateSpec.default;
@@ -308,46 +324,28 @@
         };
 
         // send defaults to remote
-        XchnNetwork.remote.sendMsg("/fx/global/%/rate".format(name), rateSpec.unmap(rateSpec.default));
-        XchnNetwork.remote.sendMsg("/fx/global/%/int".format(name), intSpec.unmap(intSpec.default));
-        XchnNetwork.remote.sendMsg("/fx/global/%/sine/toggle".format(name), 0);
-        XchnNetwork.remote.sendMsg("/fx/global/%/random/toggle".format(name), 0);
+        XchnNetwork.remote.sendMsg("/%/lfo/rate".format(prefix), rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remote.sendMsg("/%/lfo/int".format(prefix), intSpec.unmap(intSpec.default));
+        XchnNetwork.remote.sendMsg("/%/lfo/sine/toggle".format(prefix), 0);
+        XchnNetwork.remote.sendMsg("/%/lfo/random/toggle".format(prefix), 0);
 
         // setup responders
-        addr = ("/fx/global/%/lfo/rate".format(name)).asSymbol;
-        OSCdef(addr, {|msg|
+        resp = OSCFunc({|msg|
             lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
-        }, addr);
+        }, "/%/lfo/rate".format(prefix));
 
-        addr = ("/fx/global/%/lfo/int".format(name)).asSymbol;
-        OSCdef(addr, {|msg|
+        self.addToCleanup(resp);
+
+        resp = OSCFunc({|msg|
             lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
-        }, addr);
+        }, ("/%/lfo/int".format(prefix)));
 
-        addr = ("/fx/global/%/lfo/sine/toggle".format(name)).asSymbol;
-        OSCdef(addr, {|msg|
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/fx/global/%/lfo/random/toggle".format(name), 0);
-            };
-            (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
-        }, addr);
-
-        addr = ("/fx/global/%/lfo/random/toggle".format(name)).asSymbol;
-        OSCdef(addr, {|msg|
-            if(lfos.sine.isRunning) {
-                lfos.sine.stop;
-                XchnNetwork.remote.sendMsg("/fx/global/%/lfo/sine/toggle".format(name), 0);
-            };
-            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
-        }, addr);
-
-        lfos;
+        self.addToCleanup(resp);
     };
 
     q.createGlobalFxParameters = {|self|
         var params = (reverb: (), distortion: (), grain: ());
-        var lfos = ();
+        var lfos = (reverb: (), distortion: (), grain: ());
         var specs = ();
 
         specs.reverb = (
@@ -387,9 +385,23 @@
             specs.grain.density
         );
 
-        lfos.reverb = self.createGlobalLFO('reverb', params.reverb.values);
-        lfos.distortion = self.createGlobalLFO('distortion', params.distortion.values);
-        lfos.grain = self.createGlobalLFO('grain', params.grain.values);
+        lfos.reverb.sine = XchnLFO.connect(params.reverb.values);
+        lfos.reverb.random = XchnLFO.connect(params.reverb.values);
+
+        lfos.distortion.sine = XchnLFO.connect(params.distortion.values);
+        lfos.distortion.random = XchnLFO.connect(params.distortion.values);
+
+        lfos.grain.sine = XchnLFO.connect(params.grain.values);
+        lfos.grain.random = XchnLFO.connect(params.grain.values);
+
+        lfos.do {|lfo|
+            lfo.sine.type = \mono_sine;
+            lfo.random.type = \mono_random;
+        };
+
+        self.setupLFOUnit("fx/global/reverb", lfos.reverb);
+        self.setupLFOUnit("fx/global/distortion", lfos.distortion);
+        self.setupLFOUnit("fx/global/grain", lfos.grain);
 
         params.keys.do {|name|
             var addr = "/fx/global/%/value".format(name);
@@ -431,4 +443,6 @@ q.all.relative['/relative/2'].value;
 
 q.all.fx['/fx/main'].value = (x: 0.5, y: 0.5);
 q.all.fx['/fx/main'].value
+
+s.plotTree;
 
