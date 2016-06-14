@@ -68,7 +68,6 @@ XchnLFO {
                 \rate, rate
             ]).onFree { this.invalidateLatch };
         };
-        };
     }
 
     stop {
@@ -100,6 +99,17 @@ XchnLFO {
         SynthDef((address ++ "_random").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
             var rand = LFDNoise1.kr(rate ! units.size);
             SendReply.kr(Impulse.kr(updateInterval), address, rand.range(minVal, maxVal));
+        }).add;
+
+        // mono
+        SynthDef((address ++ "_mono_random").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
+            var rand = LFDNoise1.kr(rate);
+            SendReply.kr(Impulse.kr(updateInterval), address, rand.range(minVal, maxVal));
+        }).add;
+
+        SynthDef((address ++ "_mono_sine").asSymbol, {|rate=0.5, minVal=0, maxVal=1|
+            var sine = SinOsc.kr(rate);
+            SendReply.kr(Impulse.kr(updateInterval), address, sine.range(minVal, maxVal));
         }).add;
     }
 
