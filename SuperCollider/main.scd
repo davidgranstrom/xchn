@@ -164,6 +164,10 @@
                 )
             );
 
+            OSCdef(params.listen, {|msg|
+                unit.remoteValue = msg[1];
+            }, params.listen);
+
             units.add(unit);
         };
 
