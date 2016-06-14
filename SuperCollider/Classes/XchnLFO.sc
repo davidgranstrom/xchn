@@ -66,13 +66,13 @@ XchnLFO {
                 \minVal, minVal,
                 \maxVal, maxVal,
                 \rate, rate
-            ]);
+            ]).onFree { this.invalidateLatch };
+        };
         };
     }
 
     stop {
         lfo !? {
-            this.invalidateLatch;
             lfo.free;
             lfo = nil;
         };
