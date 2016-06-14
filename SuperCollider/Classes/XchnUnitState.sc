@@ -5,11 +5,11 @@
 // ===========================================================================
 
 XchnUnitState : XchnNetwork {
-    var <>listenAddress, <>sendAddress, <>controlSpec;
+    var <>remoteAddress, <>localAddress, <>controlSpec;
     var inputValue;
 
-    *new {|listenAddress, sendAddress, controlSpec|
-        ^super.newCopyArgs(listenAddress, sendAddress, controlSpec).init;
+    *new {|remoteAddress, localAddress, controlSpec|
+        ^super.newCopyArgs(remoteAddress, localAddress, controlSpec).init;
     }
 
     init {
@@ -25,20 +25,20 @@ XchnUnitState : XchnNetwork {
         // send state to local and remote addresses
         controller.put(\value, {|obj, what, args|
             var val = obj.value;
-            this.sendToLocal(sendAddress, controlSpec.map(val));
-            this.sendToRemote(listenAddress, val);
+            this.sendToLocal(localAddress, controlSpec.map(val));
+            this.sendToRemote(remoteAddress, val);
         });
 
         // send state to local address
         controller.put(\remoteValue, {|obj, what, args|
             var val = obj.value;
-            this.sendToLocal(sendAddress, controlSpec.map(val));
+            this.sendToLocal(localAddress, controlSpec.map(val));
         });
 
         // send state to remote address
         controller.put(\localValue, {|obj, what, args|
             var val = obj.value;
-            this.sendToRemote(sendAddress, controlSpec.unmap(val));
+            this.sendToRemote(remoteAddress, controlSpec.unmap(val));
         });
     }
 
