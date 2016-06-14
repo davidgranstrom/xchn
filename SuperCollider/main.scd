@@ -61,8 +61,17 @@
 
         self.all.master.put(
             volume.address,
-            XchnUnitState(volume.address, volume.address, volume.spec)
+            XchnUnitState(
+                volume.address,
+                volume.address,
+                volume.spec
+            )
         );
+
+        OSCdef(volume.address, {|msg|
+            var unit = self.all.master[volume.address];
+            unit.remoteValue = msg[1];
+        }, volume.address);
 
         // eq reset button
         OSCdef('/master/eq/reset', {|msg|
