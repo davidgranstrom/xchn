@@ -15,22 +15,30 @@ XchnUnitState : XchnNetwork {
     init {
         inputValue = Ref();
         this.setupController(inputValue);
-        // set default
         this.value = controlSpec.unmap(controlSpec.default);
     }
 
     setupController {|model|
+        // keep track of current state
         var controller = SimpleController(model);
-        // listen for changes from "outside"
+
+        // send state to local and remote addresses
         controller.put(\value, {|obj, what, args|
             var val = obj.value;
             this.sendToLocal(sendAddress, controlSpec.map(val));
             this.sendToRemote(listenAddress, val);
         });
-        // listen to changes from remote
+
+        // send state to local address
         controller.put(\remoteValue, {|obj, what, args|
             var val = obj.value;
             this.sendToLocal(sendAddress, controlSpec.map(val));
+        });
+
+        // send state to remote address
+        controller.put(\localValue, {|obj, what, args|
+            var val = obj.value;
+            this.sendToRemote(sendAddress, controlSpec.unmap(val));
         });
     }
 
@@ -40,6 +48,10 @@ XchnUnitState : XchnNetwork {
 
     remoteValue_ {|val|
         inputValue.value_(val).changed(\remoteValue);
+    }
+
+    localValue_ {|val|
+        inputValue.value_(val).changed(\localValue);
     }
 
     value {
