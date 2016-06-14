@@ -25,8 +25,8 @@
         var reaper = NetAddr(localAddress, localPort);
         var touchOSC = NetAddr(remoteAddress, remotePort);
 
-        XchnNetwork.localAddress = reaper;
-        XchnNetwork.remoteAddress = touchOSC;
+        XchnNetwork.local = reaper;
+        XchnNetwork.remote = touchOSC;
     };
 
     q.createResponders = {|self|
@@ -182,11 +182,11 @@
         };
 
         // send defaults to remote
-        XchnNetwork.remoteAddress.sendMsg("/main/lfo/rate", rateSpec.unmap(rateSpec.default));
-        XchnNetwork.remoteAddress.sendMsg("/main/lfo/int", intSpec.unmap(intSpec.default));
-        XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
-        XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
-        XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
+        XchnNetwork.remote.sendMsg("/main/lfo/rate", rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remote.sendMsg("/main/lfo/int", intSpec.unmap(intSpec.default));
+        XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
+        XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
+        XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
 
         OSCdef('/main/lfo/rate', {|msg|
             lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
@@ -199,11 +199,11 @@
         OSCdef('/main/lfo/up/toggle', {|msg|
             if(lfos.down.isRunning) {
                 lfos.down.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
             };
             if(lfos.random.isRunning) {
                 lfos.random.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
             };
             (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
         }, '/main/lfo/up/toggle');
@@ -211,11 +211,11 @@
         OSCdef('/main/lfo/down/toggle', {|msg|
             if(lfos.up.isRunning) {
                 lfos.up.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
             };
             if(lfos.random.isRunning) {
                 lfos.random.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/random/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
             };
             (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
         }, '/main/lfo/down/toggle');
@@ -223,11 +223,11 @@
         OSCdef('/main/lfo/random/toggle', {|msg|
             if(lfos.up.isRunning) {
                 lfos.up.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/up/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
             };
             if(lfos.down.isRunning) {
                 lfos.down.stop;
-                XchnNetwork.remoteAddress.sendMsg("/main/lfo/down/toggle", 0);
+                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
             };
             (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
         }, '/main/lfo/random/toggle');

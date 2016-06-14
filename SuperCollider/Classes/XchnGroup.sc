@@ -52,10 +52,10 @@ XchnGroup {
         };
 
         // send defaults to remote
-        XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/rate", rateSpec.unmap(rateSpec.default));
-        XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/int", intSpec.unmap(intSpec.default));
-        XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/sine/toggle", 0);
-        XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/random/toggle", 0);
+        XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/rate", rateSpec.unmap(rateSpec.default));
+        XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/int", intSpec.unmap(intSpec.default));
+        XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/sine/toggle", 0);
+        XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/random/toggle", 0);
 
         // setup responders
         addr = (listenPrefix ++ "/lfo/rate").asSymbol;
@@ -76,7 +76,7 @@ XchnGroup {
         OSCdef(addr, {|msg|
             if(lfos.random.isRunning) {
                 lfos.random.stop;
-                XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/random/toggle", 0);
+                XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/random/toggle", 0);
             };
             (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
         }, addr);
@@ -87,7 +87,7 @@ XchnGroup {
         OSCdef(addr, {|msg|
             if(lfos.sine.isRunning) {
                 lfos.sine.stop;
-                XchnNetwork.remoteAddress.sendMsg(listenPrefix ++ "/lfo/sine/toggle", 0);
+                XchnNetwork.remote.sendMsg(listenPrefix ++ "/lfo/sine/toggle", 0);
             };
             (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
         }, addr);

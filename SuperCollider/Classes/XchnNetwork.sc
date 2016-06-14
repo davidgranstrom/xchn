@@ -1,23 +1,23 @@
 XchnNetwork {
-    classvar <>localAddress;
-    classvar <>remoteAddress;
+    classvar <>local;
+    classvar <>remote;
 
     *new {
         ^super.new;
     }
 
     *disconnect {
-        localAddress !? { localAddress.disconnect };
-        remoteAddress !? { remoteAddress.disconnect };
+        local !? { local.disconnect };
+        remote !? { remote.disconnect };
     }
 
     sendToLocal {|... args|
         "local: %: % %\n".postf(*args);
-        localAddress.sendMsg(*args);
+        local.sendMsg(*args);
     }
 
     sendToRemote {|... args|
         "remote: %: % %\n".postf(*args);
-        remoteAddress.sendMsg(*args);
+        remote.sendMsg(*args);
     }
 }
