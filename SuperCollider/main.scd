@@ -5,6 +5,7 @@
     var remotePort = 9000;
 
     var updateInterval = 30; // update interval for server side LFOs
+    var cleanup = List[];
 
     q = q ? ();
 
@@ -33,7 +34,7 @@
         self.createMasterResponders();
         self.createGroupResponders();
         self.createMainResponders();
-        // self.createFxResponders();
+        self.createFxResponders();
     };
 
     q.createMasterResponders = {|self|
@@ -239,85 +240,43 @@
 
     q.createFxResponders = {|self|
         var default = (spec: ControlSpec(0, 1, \lin));
-        var fx = [
-            (
-                listenAddress: '/fx/main',
-                sendAddress: (
-                    x: [
-                        '/input/1/L/fx-select/x',
-                        '/input/1/R/fx-select/x'
-                    ],
-                    y: [
-                        '/input/1/L/fx-select/y',
-                        '/input/1/R/fx-select/y'
-                    ]
-                )
-            ),
-            (
-                listenAddress: '/fx/group1',
-                sendAddress: (
-                    x: [
-                        '/input/2/L/fx-select/x',
-                        '/input/2/R/fx-select/x'
-                    ],
-                    y: [
-                        '/input/2/L/fx-select/y',
-                        '/input/2/R/fx-select/y'
-                    ]
-                )
-            ),
-            (
-                listenAddress: '/fx/group2',
-                sendAddress: (
-                    x: [
-                        '/input/3/L/fx-select/x',
-                        '/input/3/R/fx-select/x'
-                    ],
-                    y: [
-                        '/input/3/L/fx-select/y',
-                        '/input/3/R/fx-select/y'
-                    ]
-                )
-            ),
-            (
-                listenAddress: '/fx/group3',
-                sendAddress: (
-                    x: [
-                        '/input/4/L/fx-select/x',
-                        '/input/4/R/fx-select/x'
-                    ],
-                    y: [
-                        '/input/4/L/fx-select/y',
-                        '/input/4/R/fx-select/y'
-                    ]
-                )
-            ),
-            (
-                listenAddress: '/fx/group4',
-                sendAddress: (
-                    x: [
-                        '/input/5/L/fx-select/x',
-                        '/input/5/R/fx-select/x'
-                    ],
-                    y: [
-                        '/input/5/L/fx-select/y',
-                        '/input/5/R/fx-select/y'
-                    ]
-                )
-            )
-        ];
+        var fx, numInputs = 5;
+
+        var createAddresses = {|numInputs, channel, param|
+            (1..numInputs).collect {|i|
+                var listen = "/fx/select/group%".format(i).asSymbol;
+                var send = "/input/%/%/fx-select/%".format(i, channel, param).asSymbol;
+
+                (listen: listen, send: send);
+            };
+        };
+
+        fx = [
+            createAddresses.(numInputs, "L", "x"),
+            createAddresses.(numInputs, "R", "x"),
+            createAddresses.(numInputs, "L", "y"),
+            createAddresses.(numInputs, "R", "y"),
+        ].flatten;
 
         fx.do {|params|
-            var addr = params.listenAddress;
+            var unit, resp;
+
             params.parent_(default);
+
             self.all.fx.put(
-                addr,
-                XchnXYPad(
-                    addr,
-                    params.sendAddress,
+                params.listen,
+                unit = XchnUnitState(
+                    params.listen,
+                    params.send,
                     params.spec
                 );
             );
+
+            resp = OSCFunc({|msg|
+                unit.remoteValue = msg[1];
+            }, params.listen);
+
+            self.addToCleanup(resp);
         };
 
         self.createGlobalFxParameters();
@@ -434,9 +393,14 @@
         };
     };
 
+    q.addToCleanup = {|self, thing|
+        cleanup.add(thing);
+    };
+
     q.cleanup = {|self|
         XchnNetwork.disconnect;
         self.all.do {|dict| dict.do(_.free) };
+        cleanup.do(_.free);
     };
 
     s.waitForBoot {
