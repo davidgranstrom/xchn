@@ -5,12 +5,10 @@
     var remotePort = 9000;
 
     var updateInterval = 30; // update interval for server side LFOs
-    var cleanup = List[];
 
     q = q ? ();
 
     q.init = {|self|
-        // storage for responders
         self.all = ();
         self.all.master = ();
         self.all.master.eq = ();
@@ -82,8 +80,9 @@
     };
 
     q.createGroupResponders = {|self|
+        var units = List[];
         var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
-        var units, groups = [
+        var groups = [
             (listen: '/group1/volume/L', send: '/track/3/volume'),
             (listen: '/group1/volume/R', send: '/track/4/volume'),
 
@@ -100,9 +99,8 @@
             (listen: '/group5/volume/R', send: '/track/16/volume')
         ];
 
-        units = groups.collect {|params|
-            var unit, resp;
-
+        groups.do {|params|
+            var unit;
             self.all.groups.put(
                 params.listen,
                 unit = XchnUnitState(
@@ -112,14 +110,14 @@
                 )
             );
 
-            resp = OSCFunc({|msg|
-                var val = msg[1];
-                unit.remoteValue = val;
-            }, params.listen);
+            self.addToCleanup(
+                OSCFunc({|msg|
+                    var val = msg[1];
+                    unit.remoteValue = val;
+                }, params.listen)
+            );
 
-            self.addToCleanup(resp);
-
-            unit;
+            units.add(unit);
         };
 
         // stereo pairs
@@ -216,7 +214,7 @@
         ].flatten;
 
         fx.do {|params|
-            var unit, resp;
+            var unit;
 
             params.parent_(default);
 
@@ -229,94 +227,89 @@
                 );
             );
 
-            resp = OSCFunc({|msg|
-                unit.remoteValue = msg[1];
-            }, params.listen);
-
-            self.addToCleanup(resp);
+            self.addToCleanup(
+                OSCFunc({|msg|
+                    unit.remoteValue = msg[1];
+                }, params.listen)
+            );
         };
 
         self.createGlobalFxParameters();
     };
 
     q.setupLFOUnit = {|self, prefix, lfos|
-        var resp;
-
         self.setupLFOs(prefix, lfos);
 
-        resp = OSCFunc({|msg|
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/%/lfo/random/toggle".format(prefix), 0);
-            };
-            (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
-        }, "/%/lfo/sine/toggle".format(prefix));
+        self.addToCleanup(
+            OSCFunc({|msg|
+                if(lfos.random.isRunning) {
+                    lfos.random.stop;
+                    XchnNetwork.remote.sendMsg("/%/lfo/random/toggle".format(prefix), 0);
+                };
+                (msg[1].booleanValue).if({ lfos.sine.start }, { lfos.sine.stop });
+            }, "/%/lfo/sine/toggle".format(prefix))
+        );
 
-        self.addToCleanup(resp);
-
-        resp = OSCFunc({|msg|
-            if(lfos.sine.isRunning) {
-                lfos.sine.stop;
-                XchnNetwork.remote.sendMsg("/%/lfo/sine/toggle".format(prefix), 0);
-            };
-            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
-        }, "/%/lfo/random/toggle".format(prefix));
-
-        self.addToCleanup(resp);
+        self.addToCleanup(
+            OSCFunc({|msg|
+                if(lfos.sine.isRunning) {
+                    lfos.sine.stop;
+                    XchnNetwork.remote.sendMsg("/%/lfo/sine/toggle".format(prefix), 0);
+                };
+                (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+            }, "/%/lfo/random/toggle".format(prefix))
+        );
     };
 
     q.setupMainLFOs = {|self, prefix, lfos|
-        var resp;
-
         self.setupLFOs(prefix, lfos);
 
-        resp = OSCFunc({|msg|
-            if(lfos.down.isRunning) {
-                lfos.down.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
-            };
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
-        }, "/main/lfo/up/toggle");
+        self.addToCleanup(
+            OSCFunc({|msg|
+                if(lfos.down.isRunning) {
+                    lfos.down.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
+                };
+                if(lfos.random.isRunning) {
+                    lfos.random.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
+                };
+                (msg[1].booleanValue).if({ lfos.up.start }, { lfos.up.stop });
+            }, "/main/lfo/up/toggle")
+        );
 
-        self.addToCleanup(resp);
+        self.addToCleanup(
+            OSCFunc({|msg|
+                if(lfos.up.isRunning) {
+                    lfos.up.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
+                };
+                if(lfos.random.isRunning) {
+                    lfos.random.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
+                };
+                (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
+            }, "/main/lfo/down/toggle")
+        );
 
-        resp = OSCFunc({|msg|
-            if(lfos.up.isRunning) {
-                lfos.up.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
-            };
-            if(lfos.random.isRunning) {
-                lfos.random.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/random/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.down.start }, { lfos.down.stop });
-        }, "/main/lfo/down/toggle");
-
-        self.addToCleanup(resp);
-
-        resp = OSCFunc({|msg|
-            if(lfos.up.isRunning) {
-                lfos.up.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
-            };
-            if(lfos.down.isRunning) {
-                lfos.down.stop;
-                XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
-            };
-            (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
-        }, "/main/lfo/random/toggle");
-
-        self.addToCleanup(resp);
+        self.addToCleanup(
+            OSCFunc({|msg|
+                if(lfos.up.isRunning) {
+                    lfos.up.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/up/toggle", 0);
+                };
+                if(lfos.down.isRunning) {
+                    lfos.down.stop;
+                    XchnNetwork.remote.sendMsg("/main/lfo/down/toggle", 0);
+                };
+                (msg[1].booleanValue).if({ lfos.random.start }, { lfos.random.stop });
+            }, "/main/lfo/random/toggle")
+        );
     };
 
     q.setupLFOs = {|self, prefix, lfos|
         var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
         var intSpec = ControlSpec(1, 0, \lin, 0, 1);
-        var resp;
 
         lfos.do {|lfo|
             lfo.rate = rateSpec.default;
@@ -330,17 +323,19 @@
         XchnNetwork.remote.sendMsg("/%/lfo/random/toggle".format(prefix), 0);
 
         // setup responders
-        resp = OSCFunc({|msg|
-            lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
-        }, "/%/lfo/rate".format(prefix));
+        self.addToCleanup(
+            OSCFunc({|msg|
+                lfos.do {|lfo| lfo.rate = rateSpec.map(msg[1]) };
+            }, "/%/lfo/rate".format(prefix))
+        );
 
-        self.addToCleanup(resp);
+        self.addToCleanup(
+            OSCFunc({|msg|
+                lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
+            }, ("/%/lfo/int".format(prefix)))
+        );
 
-        resp = OSCFunc({|msg|
-            lfos.do {|lfo| lfo.minVal = intSpec.map(msg[1]) };
-        }, ("/%/lfo/int".format(prefix)));
-
-        self.addToCleanup(resp);
+        self.addToCleanup({ lfos.do(_.free) });
     };
 
     q.createGlobalFxParameters = {|self|
@@ -415,19 +410,32 @@
     };
 
     q.addToCleanup = {|self, thing|
-        cleanup.add(thing);
+        var func;
+        self.cleanupList ?? { self.cleanupList = List[] };
+
+        if(thing.isFunction.not) {
+            func = { thing.free }
+        };
+
+        self.cleanupList.add(func ? thing);
+        // return item
+        thing;
     };
 
-    q.cleanup = {|self|
+    q.dealloc = {|self|
         XchnNetwork.disconnect;
-        self.all.do {|dict| dict.do(_.free) };
-        cleanup.do(_.free);
+
+        self.cleanupList !? {
+            self.cleanupList.do(_.value);
+            self.cleanupList = List[];
+        };
     };
 
     s.waitForBoot {
+        q.dealloc;
         q.init;
         s.sync;
-        CmdPeriod.doOnce { q.cleanup; };
+        CmdPeriod.doOnce { q.dealloc; };
     };
 )
 
