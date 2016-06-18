@@ -97,19 +97,3 @@
         CmdPeriod.doOnce { q.dealloc; };
     };
 )
-
-~reaperPort = NetAddr("127.0.0.1", 8000);
-~reaperPort.sendMsg("/input/2/R/fx-select/y", 0.5);
-
-OSCFunc.trace(true, true);
-OSCFunc.trace(false);
-
-q.all.relative['/relative/1'].value = 0;
-q.all.relative['/relative/1'].value;
-q.all.relative['/relative/2'].value;
-
-q.all.fx['/fx/main'].value = (x: 0.5, y: 0.5);
-q.all.fx['/fx/main'].value
-
-s.plotTree;
-
