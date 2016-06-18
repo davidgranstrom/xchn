@@ -1,10 +1,15 @@
 XchnLFO {
+    classvar <>updateInterval;
+
     var <units;
     var <address;
-    var <>updateInterval;
 
     var lfo, <>type, <minVal, <maxVal, <rate;
     var latch, currentUnitValues;
+
+    *initClass {
+        updateInterval = 30;
+    }
 
     *new {|units|
         ^super.newCopyArgs(units).init;
@@ -16,7 +21,6 @@ XchnLFO {
 
     init {
         address = ("/lfo_" ++ Server.default.nextNodeID).asSymbol;
-        updateInterval = 30;
         minVal = 0;
         maxVal = 1;
         type = \stereo;

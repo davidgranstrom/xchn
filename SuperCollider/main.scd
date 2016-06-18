@@ -4,7 +4,7 @@
     var remoteAddress = "192.168.0.2"; // address to iOS device
     var remotePort = 9000;
 
-    var updateInterval = 30; // update interval for server side LFOs
+    var updateInterval = 30; // update interval (in Hz) for server side LFOs
 
     q = q ? ();
 
@@ -15,6 +15,8 @@
         self.all.groups = ();
         self.all.absolute = ();
         self.all.fx = ();
+
+        XchnLFO.updateInterval = updateInterval;
 
         self.setupOSC();
         self.createResponders();
