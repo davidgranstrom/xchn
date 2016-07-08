@@ -1,14 +1,29 @@
 var createMasterResponders;
 
 createMasterResponders = {|self|
-    var eqDefault = (spec: ControlSpec(0, 1, \lin, 0, 0.5));
     var eq, volume, volumeUnit;
 
     eq = [
-        (listen: "/master/eq/low", send: "/master/eq/low"),
-        (listen: "/master/eq/lowmid", send: "/master/eq/lowmid"),
-        (listen: "/master/eq/highmid", send: "/master/eq/highmid"),
-        (listen: "/master/eq/high", send: "/master/eq/high"),
+        (
+            listen: "/master/eq/low",
+            send: "/master/eq/low",
+            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+        ),
+        (
+            listen: "/master/eq/lowmid",
+            send: "/master/eq/lowmid",
+            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+        ),
+        (
+            listen: "/master/eq/highmid",
+            send: "/master/eq/highmid",
+            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+        ),
+        (
+            listen: "/master/eq/high",
+            send: "/master/eq/high",
+            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+        )
     ];
 
     volume = (
@@ -19,8 +34,6 @@ createMasterResponders = {|self|
 
     eq.do {|params|
         var unit;
-
-        params.parent_(eqDefault);
 
         self.all.master.eq.put(
             params.listen.asSymbol,
@@ -46,14 +59,14 @@ createMasterResponders = {|self|
     );
 
     OSCdef(volume.listen.asSymbol, {|msg|
-        // var unit = self.all.master[volume.listen.asSymbol];
         volumeUnit.remoteValue = msg[1];
     }, volume.listen);
 
     // eq reset button
     OSCdef('/master/eq/reset', {|msg|
         self.all.master.eq.do {|unit|
-            unit.value = unit.controlSpec.default;
+            var spec = unit.controlSpec;
+            unit.value = spec.default;
         }
     }, "/master/eq/reset")
 };
