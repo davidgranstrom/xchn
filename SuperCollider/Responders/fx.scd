@@ -15,12 +15,12 @@ createFxResponders = {|self|
 
     fx = [
         createAddresses.(numInputs, "L", "x"),
-        createAddresses.(numInputs, "R", "x"),
         createAddresses.(numInputs, "L", "y"),
+        createAddresses.(numInputs, "R", "x"),
         createAddresses.(numInputs, "R", "y"),
     ].flatten;
 
-    fx.do {|params|
+    fx.do {|params, i|
         var unit;
 
         params.parent_(default);
@@ -36,7 +36,7 @@ createFxResponders = {|self|
 
         self.addToCleanup(
             OSCFunc({|msg|
-                unit.remoteValue = msg[1];
+                unit.remoteValue = msg[(i % 2) + 1];
             }, params.listen)
         );
     };
