@@ -53,7 +53,7 @@ createMasterResponders = {|self|
     // eq reset button
     OSCdef('/master/eq/reset', {|msg|
         self.all.master.eq.do {|unit|
-            unit.value = eqDefault.spec.default;
+            unit.value = unit.controlSpec.default;
         }
     }, "/master/eq/reset")
 };
