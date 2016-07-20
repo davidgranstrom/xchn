@@ -1,7 +1,7 @@
 var createFxResponders, createGlobalFxParameters, setupLFO;
 
 createFxResponders = {|self|
-    var default = (spec: ControlSpec(0, 1, \lin));
+    var default = (spec: ControlSpec(1, 0, \lin));
     var fx, numInputs = 5;
 
     var createAddresses = {|numInputs, channel, param|
@@ -18,27 +18,29 @@ createFxResponders = {|self|
         createAddresses.(numInputs, "L", "y"),
         createAddresses.(numInputs, "R", "x"),
         createAddresses.(numInputs, "R", "y"),
-    ].flatten;
+    ];
 
-    fx.do {|params, i|
-        var unit;
+    fx.do {|parameters, msgIdx|
+        parameters.do {|params|
+            var unit;
 
-        params.parent_(default);
+            params.parent_(default);
 
-        self.all.fx.put(
-            params.listen,
-            unit = XchnUnitState(
+            self.all.fx.put(
                 params.listen,
-                params.send,
-                params.spec
+                unit = XchnUnitState(
+                    params.listen,
+                    params.send,
+                    params.spec
+                );
             );
-        );
 
-        self.addToCleanup(
-            OSCFunc({|msg|
-                unit.remoteValue = msg[(i % 2) + 1];
-            }, params.listen)
-        );
+            self.addToCleanup(
+                OSCFunc({|msg|
+                    unit.remoteValue = msg[1 + (msgIdx % 2)];
+                }, params.listen)
+            );
+        };
     };
 
     createGlobalFxParameters.(self);
