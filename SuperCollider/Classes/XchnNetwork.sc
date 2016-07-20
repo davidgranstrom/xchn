@@ -12,12 +12,12 @@ XchnNetwork {
     }
 
     sendToLocal {|... args|
-        "local: %: % %\n".postf(*args);
+        // "local: %: % %\n".postf(*args);
         local.sendMsg(*args);
     }
 
     sendToRemote {|... args|
-        "remote: %: % %\n".postf(*args);
+        // "remote: %: % %\n".postf(*args);
         remote.sendMsg(*args);
     }
 }
