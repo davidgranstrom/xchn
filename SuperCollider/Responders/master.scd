@@ -7,22 +7,22 @@ createMasterResponders = {|self|
         (
             listen: "/master/eq/low",
             send: "/master/eq/low",
-            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+            spec: ControlSpec(0, 0.5, \lin, default: 0) // 10Hz - 547Hz
         ),
         (
             listen: "/master/eq/lowmid",
             send: "/master/eq/lowmid",
-            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+            spec: ControlSpec(0.3, 0.5, \lin, default: 0.5) // 0, -12
         ),
         (
             listen: "/master/eq/highmid",
             send: "/master/eq/highmid",
-            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+            spec: ControlSpec(0.3, 0.5, \lin, default: 0.5) // 0, -12
         ),
         (
             listen: "/master/eq/high",
             send: "/master/eq/high",
-            spec: ControlSpec(0.4, 0.6, \lin, default: 0.5) // -6, +6
+            spec: ControlSpec(0.5, 1, \lin, default: 1) // 547Hz - 30kHz
         )
     ];
 
@@ -64,9 +64,9 @@ createMasterResponders = {|self|
 
     // eq reset button
     OSCdef('/master/eq/reset', {|msg|
-        self.all.master.eq.do {|unit|
+        self.all.master.eq.values.do {|unit|
             var spec = unit.controlSpec;
-            unit.value = spec.default;
+            unit.value = spec.unmap(spec.default);
         }
     }, "/master/eq/reset")
 };
