@@ -52,8 +52,7 @@ createGlobalFxParameters = {|self|
     var specs = ();
 
     specs.reverb = (
-        cfreq: ControlSpec(0, 1, \lin, 0, 0.5),
-        roomSize: ControlSpec(0, 1, \lin, 0, 0.5),
+        lpfreq: ControlSpec(0.5, 0.9, \lin, 0, 0.5)
     );
 
     specs.distortion = (
@@ -61,19 +60,13 @@ createGlobalFxParameters = {|self|
     );
 
     specs.grain = (
-        density: ControlSpec(0, 1, \lin, 0, 0.1),
+        density: ControlSpec(0.25, 0.6, \lin, 0, 0.25),
     );
 
     params.reverb.cfreq = XchnUnitState(
         '/fx/global/reverb/value',
-        '/reverb/bpf/cfreq',
-        specs.reverb.cfreq
-    );
-
-    params.reverb.roomSize = XchnUnitState(
-        '/fx/global/reverb/value',
-        '/reverb/roomSize',
-        specs.reverb.roomSize
+        '/reverb/lpfreq',
+        specs.reverb.lpfreq
     );
 
     params.distortion.gain = XchnUnitState(
