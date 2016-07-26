@@ -46,6 +46,9 @@ createMainResponders = {|self|
         units.add(unit);
     };
 
+    // don't assign "group 1" to LFOs (master)
+    // units.removeAt(0);
+
     // setup LFOs
     lfos.up = XchnLFO.connect(units);
     lfos.down = XchnLFO.connect(units.reverse);
