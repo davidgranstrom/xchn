@@ -2,8 +2,6 @@ var createMainResponders, setupLFO;
 
 createMainResponders = {|self|
     var units = List[];
-    var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
-    var intSpec = ControlSpec(1, 0, \lin, 0, 1);
     var lfos = ();
 
     var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper

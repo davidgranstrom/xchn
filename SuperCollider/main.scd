@@ -40,7 +40,7 @@
     };
 
     q.setupLFOs = {|self, prefix, lfos|
-        var rateSpec = ControlSpec(1/60, 1, \exp, 0, 1/10);
+        var rateSpec = ControlSpec(1/60, 4, \exp, 0, 1/10);
         var intSpec = ControlSpec(1, 0, \lin, 0, 1);
 
         lfos.do {|lfo|
