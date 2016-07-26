@@ -23,6 +23,16 @@ createMasterResponders = {|self|
             listen: "/master/eq/high",
             send: "/master/eq/high",
             spec: ControlSpec(0.5, 1, \lin, default: 1) // 547Hz - 30kHz
+        ),
+        (
+            listen: "/master/eq/lowshelf",
+            send: "/master/eq/lowshelf",
+            spec: ControlSpec(0.3, 0.55, \lin, default: 0.5)
+        ),
+        (
+            listen: "/master/eq/highshelf",
+            send: "/master/eq/highshelf",
+            spec: ControlSpec(0.3, 0.55, \lin, default: 0.5)
         )
     ];
 
@@ -68,7 +78,18 @@ createMasterResponders = {|self|
             var spec = unit.controlSpec;
             unit.value = spec.unmap(spec.default);
         }
-    }, "/master/eq/reset")
+    }, "/master/eq/reset");
+
+    OSCdef('/master/eq/shelf/reset', {|msg|
+        var lowUnit = self.all.master.eq['/master/eq/lowshelf'];
+        var highUnit = self.all.master.eq['/master/eq/highshelf'];
+        var lowSpec = lowUnit.controlSpec;
+        var highSpec = highUnit.controlSpec;
+
+        lowUnit.value = lowSpec.unmap(lowSpec.default);
+        highUnit.value = highSpec.unmap(highSpec.default);
+
+    }, "/master/eq/shelf/reset");
 };
 
 // return
