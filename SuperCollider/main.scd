@@ -14,7 +14,6 @@
         self.all.master.eq = ();
         self.all.groups = ();
         self.all.absolute = ();
-        self.all.fx = ();
 
         XchnLFO.updateInterval = updateInterval;
 
@@ -33,7 +32,7 @@
     q.createResponders = {|self|
         var path = PathName(thisProcess.nowExecutingPath).pathOnly +/+ "Responders";
 
-        [ "master", "group", "main", "fx" ].do {|name|
+        [ "master", "group", "main" ].do {|name|
             var file = (path +/+ name ++ ".scd").load;
             file.(self);
         };
