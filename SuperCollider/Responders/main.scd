@@ -8,23 +8,35 @@ createMainResponders = {|self|
     var absolute = [
         (
             listen: '/group1/abs/volume',
-            send: '/track/2/volume'
+            send: '/track/1/volume'
         ),
         (
             listen: '/group2/abs/volume',
-            send: '/track/5/volume'
+            send: '/track/4/volume'
         ),
         (
             listen: '/group3/abs/volume',
-            send: '/track/8/volume'
+            send: '/track/7/volume'
         ),
         (
             listen: '/group4/abs/volume',
-            send: '/track/11/volume'
+            send: '/track/10/volume'
         ),
         (
             listen: '/group5/abs/volume',
-            send: '/track/14/volume'
+            send: '/track/13/volume'
+        ),
+        (
+            listen: '/group6/abs/volume',
+            send: '/track/16/volume'
+        ),
+        (
+            listen: '/group7/abs/volume',
+            send: '/track/19/volume'
+        ),
+        (
+            listen: '/group8/abs/volume',
+            send: '/track/22/volume'
         )
     ];
 

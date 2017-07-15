@@ -4,20 +4,29 @@ createGroupResponders = {|self|
     var units = List[];
     var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
     var groups = [
-        (listen: '/group1/volume/L', send: '/track/3/volume'),
-        (listen: '/group1/volume/R', send: '/track/4/volume'),
+        (listen: '/group1/volume/L', send: '/track/2/volume'),
+        (listen: '/group1/volume/R', send: '/track/3/volume'),
 
-        (listen: '/group2/volume/L', send: '/track/6/volume'),
-        (listen: '/group2/volume/R', send: '/track/7/volume'),
+        (listen: '/group2/volume/L', send: '/track/5/volume'),
+        (listen: '/group2/volume/R', send: '/track/6/volume'),
 
-        (listen: '/group3/volume/L', send: '/track/9/volume'),
-        (listen: '/group3/volume/R', send: '/track/10/volume'),
+        (listen: '/group3/volume/L', send: '/track/8/volume'),
+        (listen: '/group3/volume/R', send: '/track/9/volume'),
 
-        (listen: '/group4/volume/L', send: '/track/12/volume'),
-        (listen: '/group4/volume/R', send: '/track/13/volume'),
+        (listen: '/group4/volume/L', send: '/track/11/volume'),
+        (listen: '/group4/volume/R', send: '/track/12/volume'),
 
-        (listen: '/group5/volume/L', send: '/track/15/volume'),
-        (listen: '/group5/volume/R', send: '/track/16/volume')
+        (listen: '/group5/volume/L', send: '/track/14/volume'),
+        (listen: '/group5/volume/R', send: '/track/15/volume')
+
+        (listen: '/group6/volume/L', send: '/track/17/volume'),
+        (listen: '/group6/volume/R', send: '/track/18/volume')
+
+        (listen: '/group7/volume/L', send: '/track/20/volume'),
+        (listen: '/group7/volume/R', send: '/track/21/volume')
+
+        (listen: '/group8/volume/L', send: '/track/23/volume'),
+        (listen: '/group8/volume/R', send: '/track/24/volume')
     ];
 
     groups.do {|params|
