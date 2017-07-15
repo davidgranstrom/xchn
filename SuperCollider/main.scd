@@ -1,7 +1,7 @@
 (
     var localAddress = "127.0.0.1"; // address to Reaper
     var localPort = 8000;
-    var remoteAddress = "192.168.0.2"; // address to iOS device
+    var remoteAddress = "192.168.1.73"; // address to iOS device
     var remotePort = 9000;
 
     var updateInterval = 25; // update interval (in Hz) for server side LFOs
