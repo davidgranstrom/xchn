@@ -32,7 +32,7 @@
     q.createResponders = {|self|
         var path = PathName(thisProcess.nowExecutingPath).pathOnly +/+ "Responders";
 
-        [ "master", "group", "main" ].do {|name|
+        [ "master", "group", "main", "programs" ].do {|name|
             var file = (path +/+ name ++ ".scd").load;
             file.(self);
         };
