@@ -1,8 +1,5 @@
 var randMute = {|self|
-    var numCandidates = 1;
-    var waitTime = 1;
     var spec = ControlSpec(0, 1, \lin, 1, 0);
-
     var tracks = [
         // (listen: '/group1/mute/L', send: '/track/2/mute'),
         // (listen: '/group1/mute/R', send: '/track/3/mute'),
@@ -37,6 +34,8 @@ var randMute = {|self|
         );
     };
 
+    var numCandidates = 1;
+    var waitTime = 1;
     var muteAlgoPlaying = false;
     var seqAlgoPlaying = false;
     var activeRoutines = List[];
@@ -63,6 +62,14 @@ var randMute = {|self|
         };
     };
 
+    var runMuteAlgo = {
+        numCandidates.do {|i|
+            var routine = createRoutine.(candidates, i * rrand(0.1, 0.5));
+            routine.play;
+            activeRoutines.add(routine);
+        };
+    };
+
     OSCdef(\muteAlgo, {|msg|
         if (msg[1] == 1) {
             if (seqAlgoPlaying) {
@@ -71,11 +78,7 @@ var randMute = {|self|
                 XchnNetwork.remote.sendMsg("/muteAlgoSeq/toggle", 0);
             };
 
-            numCandidates.do {|i|
-                var routine = createRoutine.(candidates, i * rrand(0.1, 0.5));
-                routine.play;
-                activeRoutines.add(routine);
-            };
+            runMuteAlgo.();
             muteAlgoPlaying = true;
         } {
             resetAllRoutines.();
@@ -105,13 +108,23 @@ var randMute = {|self|
 
     OSCdef(\muteAlgoRate, {|msg|
         var rate = msg[1].linexp(0, 1, 2, 0.08);
+        rate.postln;
         waitTime = rate;
     }, "/muteAlgo/rate");
 
-    OSCdef(\muteAlgoCandidates, {|msg|
-        var num = msg[1].linlin(0, 1, 1, 4).floor;
-        numCandidates = num;
-    }, "/muteAlgo/candidates");
+    // 1 - 4 candidates in parallel
+    4.do {|i|
+        i = i + 1;
+        OSCdef(("muteAlgoCandidates" ++ i).asSymbol, {|msg|
+            if (msg[1] == 1) {
+                numCandidates = i;
+                if (muteAlgoPlaying) {
+                    resetAllRoutines.();
+                    runMuteAlgo.();
+                }
+            }
+        }, "/muteAlgo/candidates/%/1".format(i));
+    };
 };
 
 // var bloom = {|self|
