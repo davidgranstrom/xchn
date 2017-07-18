@@ -37,12 +37,16 @@ var randMute = {|self|
         );
     };
 
+    var muteAlgoPlaying = false;
+    var seqAlgoPlaying = false;
     var activeRoutines = List[];
+
     var candidates = Pxrand(units, inf).asStream;
-    var createRoutine = {|timingOffset=0|
+    var seqCandidates = Pseq(units, inf).asStream;
+    var createRoutine = {|pattern, timingOffset=0|
         Routine {
             loop {
-                var unit = candidates.next;
+                var unit = pattern.next;
                 unit.value = 1;
                 (waitTime + timingOffset).wait;
                 unit.value = 0;
@@ -50,25 +54,57 @@ var randMute = {|self|
         };
     };
 
+    var resetAllRoutines = {
+        activeRoutines.do {|r| r.stop; };
+        activeRoutines = List[];
+        // reset all mutes
+        units.do {|unit|
+            unit.value = 0;
+        };
+    };
+
     OSCdef(\muteAlgo, {|msg|
         if (msg[1] == 1) {
-            numCandidates.do {|i|
-                var r = createRoutine.(i * rrand(0.1, 0.5));
-                r.play;
-                activeRoutines.add(r);
-            }
-        } {
-            activeRoutines.do {|r| r.stop; };
-            activeRoutines = List[];
-            // reset all mutes
-            units.do {|unit|
-                unit.value = 0;
+            if (seqAlgoPlaying) {
+                resetAllRoutines.();
+                seqAlgoPlaying = false;
+                XchnNetwork.remote.sendMsg("/muteAlgoSeq/toggle", 0);
             };
+
+            numCandidates.do {|i|
+                var routine = createRoutine.(candidates, i * rrand(0.1, 0.5));
+                routine.play;
+                activeRoutines.add(routine);
+            };
+            muteAlgoPlaying = true;
+        } {
+            resetAllRoutines.();
+            muteAlgoPlaying = false;
         }
     }, "/muteAlgo/toggle");
 
+    OSCdef(\muteAlgoSeq, {|msg|
+        if (msg[1] == 1) {
+            var routine;
+
+            if (muteAlgoPlaying) {
+                resetAllRoutines.();
+                muteAlgoPlaying = false;
+                XchnNetwork.remote.sendMsg("/muteAlgo/toggle", 0);
+            };
+
+            routine = createRoutine.(seqCandidates, 0);
+            routine.play;
+            activeRoutines.add(routine);
+            seqAlgoPlaying = true;
+        } {
+            resetAllRoutines.();
+            seqAlgoPlaying = false;
+        }
+    }, "/muteAlgoSeq/toggle");
+
     OSCdef(\muteAlgoRate, {|msg|
-        var rate = msg[1].linlin(0, 1, 4, 0.05);
+        var rate = msg[1].linexp(0, 1, 2, 0.08);
         waitTime = rate;
     }, "/muteAlgo/rate");
 
