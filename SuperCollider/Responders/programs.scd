@@ -1,3 +1,4 @@
+// Random/sequential mute program
 var randMute = {|self|
     var spec = ControlSpec(0, 1, \lin, 1, 0);
     var tracks = [
@@ -108,7 +109,6 @@ var randMute = {|self|
 
     OSCdef(\muteAlgoRate, {|msg|
         var rate = msg[1].linexp(0, 1, 2, 0.08);
-        rate.postln;
         waitTime = rate;
     }, "/muteAlgo/rate");
 
@@ -127,32 +127,98 @@ var randMute = {|self|
     };
 };
 
-// var bloom = {|self|
-//     var lfos = ();
-//     var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
-//     var units = self.all.absolute.copy;
-//     // don't assign "group 1" (master)
-//     units.removeAt('/group1/abs/volume')
+var bloom = {|self|
+    var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
+    var tracks = [
+        // (listen: '/bloom/1', send: '/track/25/volume'),
+        (listen: "/bloom/2", send: "/track/26/volume"),
+        (listen: "/bloom/3", send: "/track/27/volume"),
+        (listen: "/bloom/4", send: "/track/28/volume"),
+        (listen: "/bloom/5", send: "/track/29/volume"),
+        (listen: "/bloom/6", send: "/track/30/volume"),
+        (listen: "/bloom/7", send: "/track/31/volume"),
+        (listen: "/bloom/8", send: "/track/32/volume"),
+    ];
 
-//     var routine = Routine {
-//         loop {
-//            var chosen = units.choose;
-//            var others = units.reject {|unit| unit.key == chosen.key };
-//            var condition = Condition.new;
+    var units = tracks.collect {|params|
+        XchnUnitState(
+            params.listen,
+            params.send,
+            spec
+        );
+    };
 
-//            fork {
+    var updateInterval = 1/25;
+    var activeThreads = List[];
+    var spawnThread = {|unit, startVal=1, endVal=0|
+        var ref = Ref(1);
+        var duration = rrand(10.0, 60.0);
+        var t = fork {
+            var val, env = Env([ startVal, endVal ], [ duration ], \lin).asStream;
+            while { (val = env.next) != endVal } {
+                unit.value = val;
+                updateInterval.wait;
+            };
+            // we might not reach endVal exactly before the loop is terminated
+            unit.value = endVal;
+            ref.value = 0;
+        };
+        activeThreads.add(t);
+        // return the ref so we can know when the thread is finished
+        ref;
+    };
 
-//            }
-//         }
-//     }
+    var routine = Routine {
+        loop {
+            var others = units.copy;
+            var chosen = others.takeAt(rrand(0, others.size - 1));
+            var condition = Condition.new;
+            var threads;
+            // start fading out
+            threads = others.collect {|unit| spawnThread.(unit, unit.value, 0) };
+            fork {
+                while { threads.collect {|ref| ref.value }.sum != 0 } {
+                    // loop here until we know all threads are finished
+                    updateInterval.wait;
+                };
+                // remove all saved threads
+                activeThreads = List[];
+                // return control back to main routine
+                condition.unhang;
+            };
+            condition.hang;
+            // wait a little before going back up
+            rrand(1.0, 5.0).wait;
+            // start fading up
+            threads = others.collect {|unit| spawnThread.(unit, 0, 1) };
+            fork {
+                while { threads.collect {|ref| ref.value }.sum.postln != 0 } {
+                    // remove all saved threads
+                    activeThreads = List[];
+                    // loop here until we know all threads are finished
+                    updateInterval.wait;
+                };
+                // return control back to main routine
+                condition.unhang;
+            };
+            condition.hang;
+        };
+    };
 
-// };
-
-var createResponders = {|self|
-    randMute.(self);
+    OSCdef(\bloomAlgo, {|msg|
+        if (msg[1] == 1) {
+            routine.reset;
+            routine.play;
+        } {
+            activeThreads.do(_.stop);
+            activeThreads = List[];
+            routine.stop;
+        }
+    }, "/bloomAlgo/toggle");
 };
 
 // return
 {|self|
-    createResponders.(self);
+    randMute.(self);
+    bloom.(self);
 }
