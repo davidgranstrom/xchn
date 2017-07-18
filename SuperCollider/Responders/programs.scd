@@ -192,12 +192,12 @@ var bloom = {|self|
             // start fading up
             threads = others.collect {|unit| spawnThread.(unit, 0, 1) };
             fork {
-                while { threads.collect {|ref| ref.value }.sum.postln != 0 } {
-                    // remove all saved threads
-                    activeThreads = List[];
+                while { threads.collect {|ref| ref.value }.sum != 0 } {
                     // loop here until we know all threads are finished
                     updateInterval.wait;
                 };
+                // remove all saved threads
+                activeThreads = List[];
                 // return control back to main routine
                 condition.unhang;
             };
