@@ -37,7 +37,7 @@ createMasterResponders = {|self|
     ];
 
     volume = (
-        listen: "/master/volume",
+        listen: "/master/masterVolume",
         send: "/master/volume",
         spec: ControlSpec(0, 0.716, \lin, 0, 0)
     );
