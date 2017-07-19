@@ -90,6 +90,11 @@ createMasterResponders = {|self|
         highUnit.value = highSpec.unmap(highSpec.default);
 
     }, "/master/eq/shelf/reset");
+
+    OSCdef(\nowPlaying, {|msg|
+        var trackName = msg[1].asString;
+        XchnNetwork.remote.sendMsg("/master/nowPlaying", trackName);
+    }, "/lastmarker/name");
 };
 
 // return
