@@ -128,9 +128,13 @@ var randMute = {|self|
 };
 
 var bloom = {|self|
+    var units, spawnThread, routine;
+    var updateInterval = 1/25;
+    var activeThreads = List[];
+
     var spec = ControlSpec(0, 0.716, \lin, 0, 0.716); // 0.716 is 0dB in Reaper
     var tracks = [
-        // (listen: '/bloom/1', send: '/track/25/volume'),
+        (listen: '/bloom/1', send: '/track/25/volume'),
         (listen: "/bloom/2", send: "/track/26/volume"),
         (listen: "/bloom/3", send: "/track/27/volume"),
         (listen: "/bloom/4", send: "/track/28/volume"),
@@ -140,19 +144,29 @@ var bloom = {|self|
         (listen: "/bloom/8", send: "/track/32/volume"),
     ];
 
-    var units = tracks.collect {|params|
-        XchnUnitState(
+    units = tracks.collect {|params|
+        var unit = XchnUnitState(
             params.listen,
             params.send,
             spec
         );
+
+        self.addToCleanup(
+            OSCFunc({|msg|
+                var val = msg[1];
+                unit.remoteValue = val;
+            }, params.listen)
+        );
+
+        unit;
     };
 
-    var updateInterval = 1/25;
-    var activeThreads = List[];
-    var spawnThread = {|unit, startVal=1, endVal=0|
+    // remove master group from candidates
+    units.removeAt(0);
+
+    spawnThread = {|unit, startVal=1, endVal=0|
         var ref = Ref(1);
-        var duration = rrand(10.0, 60.0);
+        var duration = rrand(20.0, 60.0);
         var t = fork {
             var val, env = Env([ startVal, endVal ], [ duration ], \lin).asStream;
             while { (val = env.next) != endVal } {
@@ -168,7 +182,7 @@ var bloom = {|self|
         ref;
     };
 
-    var routine = Routine {
+    routine = Routine {
         loop {
             var others = units.copy;
             var chosen = others.takeAt(rrand(0, others.size - 1));
