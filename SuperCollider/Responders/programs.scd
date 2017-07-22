@@ -1,9 +1,18 @@
 // Random/sequential mute program
 var randMute = {|self|
+    var units, candidates, seqCandidates, createRoutine;
+    var resetAllRoutines, runMuteAlgo;
+
+    var numCandidates = 1;
+    var waitTime = 1;
+    var muteAlgoPlaying = false;
+    var seqAlgoPlaying = false;
+    var activeRoutines = List[];
+
     var spec = ControlSpec(0, 1, \lin, 1, 0);
     var tracks = [
-        // (listen: '/group1/mute/L', send: '/track/2/mute'),
-        // (listen: '/group1/mute/R', send: '/track/3/mute'),
+        (listen: '/group1/mute/L', send: '/track/2/mute'),
+        (listen: '/group1/mute/R', send: '/track/3/mute'),
 
         (listen: '/group2/mute/L', send: '/track/5/mute'),
         (listen: '/group2/mute/R', send: '/track/6/mute'),
@@ -27,23 +36,30 @@ var randMute = {|self|
         (listen: '/group8/mute/R', send: '/track/24/mute'),
     ];
 
-    var units = tracks.collect {|params|
-        XchnUnitState(
+    units = tracks.collect {|params|
+        var unit = XchnUnitState(
             params.listen,
             params.send,
             spec
         );
+
+        self.addToCleanup(
+            OSCFunc({|msg|
+                var val = msg[1];
+                unit.remoteValue = val;
+            }, params.listen)
+        );
+
+        unit;
     };
 
-    var numCandidates = 1;
-    var waitTime = 1;
-    var muteAlgoPlaying = false;
-    var seqAlgoPlaying = false;
-    var activeRoutines = List[];
+    // remove master channels from candidates
+    units.removeAt(0); // channel 1
+    units.removeAt(0); // channel 2
 
-    var candidates = Pxrand(units, inf).asStream;
-    var seqCandidates = Pseq(units, inf).asStream;
-    var createRoutine = {|pattern, timingOffset=0|
+    candidates = Pxrand(units, inf).asStream;
+    seqCandidates = Pseq(units, inf).asStream;
+    createRoutine = {|pattern, timingOffset=0|
         Routine {
             loop {
                 var unit = pattern.next;
@@ -54,7 +70,7 @@ var randMute = {|self|
         };
     };
 
-    var resetAllRoutines = {
+    resetAllRoutines = {
         activeRoutines.do {|r| r.stop; };
         activeRoutines = List[];
         // reset all mutes
@@ -63,7 +79,7 @@ var randMute = {|self|
         };
     };
 
-    var runMuteAlgo = {
+    runMuteAlgo = {
         numCandidates.do {|i|
             var routine = createRoutine.(candidates, i * rrand(0.1, 0.5));
             routine.play;
@@ -125,6 +141,9 @@ var randMute = {|self|
             }
         }, "/muteAlgo/candidates/%/1".format(i));
     };
+
+    // initialize remote controller
+    XchnNetwork.remote.sendMsg("/muteAlgo/candidates/1/1", 1);
 };
 
 var bloom = {|self|
