@@ -94,6 +94,9 @@ createMasterResponders = {|self|
     OSCdef(\nowPlaying, {|msg|
         var trackName = msg[1].asString;
         XchnNetwork.remote.sendMsg("/master/nowPlaying", trackName);
+        if (self.presenter.notNil) {
+            self.presenter.sendMsg('/currentTrack');
+        }
     }, "/lastmarker/name");
 };
 

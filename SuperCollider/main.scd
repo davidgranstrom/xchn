@@ -24,9 +24,11 @@
     q.setupOSC = {|self|
         var reaper = NetAddr(localAddress, localPort);
         var touchOSC = NetAddr(remoteAddress, remotePort);
+        var presenter = NetAddr(localAddress, 9912);
 
         XchnNetwork.local = reaper;
         XchnNetwork.remote = touchOSC;
+        self.presenter = presenter;
     };
 
     q.createResponders = {|self|
