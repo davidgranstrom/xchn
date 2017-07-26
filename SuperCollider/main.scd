@@ -3,6 +3,8 @@
     var localPort = 8000;
     var remoteAddress = "192.168.1.73"; // address to iOS device
     var remotePort = 9000;
+    var presenterAddress = "192.168.1.65";
+    var presenterPort = 9912;
 
     var updateInterval = 25; // update interval (in Hz) for server side LFOs
 
@@ -24,7 +26,7 @@
     q.setupOSC = {|self|
         var reaper = NetAddr(localAddress, localPort);
         var touchOSC = NetAddr(remoteAddress, remotePort);
-        var presenter = NetAddr(localAddress, 9912);
+        var presenter = NetAddr(presenterAddress, presenterPort);
 
         XchnNetwork.local = reaper;
         XchnNetwork.remote = touchOSC;
