@@ -34,10 +34,10 @@ createMainResponders = {|self|
             listen: '/group7/abs/volume',
             send: '/track/19/volume'
         ),
-        (
-            listen: '/group8/abs/volume',
-            send: '/track/22/volume'
-        )
+        // (
+        //     listen: '/group8/abs/volume',
+        //     send: '/track/22/volume'
+        // )
     ];
 
     absolute.do {|params|

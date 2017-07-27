@@ -32,8 +32,8 @@ var randMute = {|self|
         (listen: '/group7/mute/L', send: '/track/20/mute'),
         (listen: '/group7/mute/R', send: '/track/21/mute'),
 
-        (listen: '/group8/mute/L', send: '/track/23/mute'),
-        (listen: '/group8/mute/R', send: '/track/24/mute'),
+        // (listen: '/group8/mute/L', send: '/track/23/mute'),
+        // (listen: '/group8/mute/R', send: '/track/24/mute'),
     ];
 
     units = tracks.collect {|params|
@@ -160,7 +160,7 @@ var bloom = {|self|
         (listen: "/bloom/5", send: "/track/29/volume"),
         (listen: "/bloom/6", send: "/track/30/volume"),
         (listen: "/bloom/7", send: "/track/31/volume"),
-        (listen: "/bloom/8", send: "/track/32/volume"),
+        // (listen: "/bloom/8", send: "/track/32/volume"),
     ];
 
     units = tracks.collect {|params|

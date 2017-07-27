@@ -25,8 +25,8 @@ createGroupResponders = {|self|
         (listen: '/group7/volume/L', send: '/track/20/volume'),
         (listen: '/group7/volume/R', send: '/track/21/volume'),
 
-        (listen: '/group8/volume/L', send: '/track/23/volume'),
-        (listen: '/group8/volume/R', send: '/track/24/volume'),
+        // (listen: '/group8/volume/L', send: '/track/23/volume'),
+        // (listen: '/group8/volume/R', send: '/track/24/volume'),
     ];
 
     groups.do {|params|
